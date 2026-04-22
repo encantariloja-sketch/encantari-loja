@@ -5,6 +5,8 @@ export type HomeConfig = {
     subheadline: string
     cta_texto: string
     cta_link: string
+    cta2_texto: string
+    cta2_link: string
     cor_fundo: string
     imagem?: string
   }
@@ -26,6 +28,19 @@ export type HomeConfig = {
     cor: string
     imagem?: string
   }>
+  institucional: {
+    label: string
+    titulo: string
+    titulo_italic: string
+    corpo: string
+    cta_texto: string
+    cta_link: string
+    beneficios: Array<{ emoji: string; titulo: string; sub: string }>
+  }
+  newsletter: {
+    headline: string
+    subtitulo: string
+  }
 }
 
 export const defaultConfig: HomeConfig = {
@@ -35,6 +50,8 @@ export const defaultConfig: HomeConfig = {
     subheadline: 'Curadoria especial de itens únicos para a sua casa e para as pessoas que você ama.',
     cta_texto: 'Explorar loja',
     cta_link: '/produtos',
+    cta2_texto: 'Silvanian Families',
+    cta2_link: '/produtos?categoria=silvanian',
     cor_fundo: '#491E2F',
   },
   categorias_destaque: ['cafes-chas', 'canecas', 'vasos', 'flores-artificiais', 'ceramicas', 'papelaria', 'silvanian'],
@@ -52,6 +69,24 @@ export const defaultConfig: HomeConfig = {
     { titulo: 'Cafés e Chás', subtitulo: 'Momentos de puro prazer', link: '/produtos?categoria=cafes-chas', cor: '#EF9493' },
     { titulo: 'Papelaria', subtitulo: 'Para quem ama escrever', link: '/produtos?categoria=papelaria', cor: '#491E2F' },
   ],
+  institucional: {
+    label: 'Nossa proposta',
+    titulo: 'Presentes com alma,',
+    titulo_italic: 'escolhidos com amor',
+    corpo: 'A Encantari é uma curadoria especial de produtos únicos para decoração e presentes afetivos. Cada item é selecionado com carinho para trazer beleza, aconchego e emoção para o seu dia a dia e para as pessoas que você ama.',
+    cta_texto: 'Conhecer a loja',
+    cta_link: '/produtos',
+    beneficios: [
+      { emoji: '🚚', titulo: 'Entrega para todo Brasil', sub: 'Via Melhor Envio' },
+      { emoji: '✨', titulo: 'Produtos selecionados', sub: 'Curadoria especial' },
+      { emoji: '💌', titulo: 'Atendimento próximo', sub: 'Respondemos rápido' },
+      { emoji: '🎁', titulo: 'Embalagem presente', sub: 'Enviamos com cuidado' },
+    ],
+  },
+  newsletter: {
+    headline: 'Fique por dentro',
+    subtitulo: 'Receba novidades, lançamentos e ofertas exclusivas diretamente no seu email.',
+  },
 }
 
 export async function getHomeConfig(): Promise<HomeConfig> {

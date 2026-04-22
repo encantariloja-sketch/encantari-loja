@@ -19,7 +19,7 @@ const ICONES_CAT: Record<string, string> = {
   'flores-artificiais': '🌸', ceramicas: '🪴', papelaria: '📓', silvanian: '🐿️',
 }
 
-type Secao = 'topbar' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores'
+type Secao = 'topbar' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores' | 'institucional' | 'newsletter'
 
 export default function AdminHomePage() {
   const [config, setConfig] = useState<HomeConfig>(defaultConfig)
@@ -99,6 +99,22 @@ export default function AdminHomePage() {
       banners[i] = { ...banners[i], [campo]: valor }
       return { ...c, banners_menores: banners }
     })
+  }
+
+  function atualizarInstitucional(campo: string, valor: string) {
+    setConfig(c => ({ ...c, institucional: { ...c.institucional, [campo]: valor } }))
+  }
+
+  function atualizarBeneficio(i: number, campo: string, valor: string) {
+    setConfig(c => {
+      const beneficios = [...c.institucional.beneficios]
+      beneficios[i] = { ...beneficios[i], [campo]: valor }
+      return { ...c, institucional: { ...c.institucional, beneficios } }
+    })
+  }
+
+  function atualizarNewsletter(campo: string, valor: string) {
+    setConfig(c => ({ ...c, newsletter: { ...c.newsletter, [campo]: valor } }))
   }
 
   const produtosFiltrados = todosProdutos.filter(p =>
@@ -182,7 +198,7 @@ export default function AdminHomePage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Texto do botão</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Texto do botão principal</label>
                 <input
                   value={config.hero.cta_texto}
                   onChange={e => atualizarHero('cta_texto', e.target.value)}
@@ -190,10 +206,27 @@ export default function AdminHomePage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Link do botão</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Link do botão principal</label>
                 <input
                   value={config.hero.cta_link}
                   onChange={e => atualizarHero('cta_link', e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Texto do 2º botão</label>
+                <input
+                  value={config.hero.cta2_texto}
+                  onChange={e => atualizarHero('cta2_texto', e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa"
+                  placeholder="Deixe em branco para ocultar"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Link do 2º botão</label>
+                <input
+                  value={config.hero.cta2_link}
+                  onChange={e => atualizarHero('cta2_link', e.target.value)}
                   className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa"
                 />
               </div>
@@ -416,6 +449,86 @@ export default function AdminHomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </Secao>
+
+        {/* ── 8. BLOCO INSTITUCIONAL ── */}
+        <Secao
+          titulo="Bloco institucional"
+          emoji="🏡"
+          sub="Textos e cards da seção 'Nossa proposta'"
+          aberto={aberto === 'institucional'}
+          onToggle={() => toggle('institucional')}
+        >
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Label (acima do título)</label>
+                <input value={config.institucional.label} onChange={e => atualizarInstitucional('label', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Título linha 1</label>
+                <input value={config.institucional.titulo} onChange={e => atualizarInstitucional('titulo', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Título linha 2 (itálico, em rosa)</label>
+              <input value={config.institucional.titulo_italic} onChange={e => atualizarInstitucional('titulo_italic', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Parágrafo</label>
+              <textarea value={config.institucional.corpo} onChange={e => atualizarInstitucional('corpo', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-rosa" rows={4} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Texto do botão</label>
+                <input value={config.institucional.cta_texto} onChange={e => atualizarInstitucional('cta_texto', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Link do botão</label>
+                <input value={config.institucional.cta_link} onChange={e => atualizarInstitucional('cta_link', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
+              </div>
+            </div>
+            <p className="text-xs font-semibold text-gray-500 pt-1">Cards de benefícios (4 cards)</p>
+            {config.institucional.beneficios.map((b, i) => (
+              <div key={i} className="border border-gray-100 rounded-xl p-3 space-y-2">
+                <p className="text-[11px] text-gray-400 font-medium">Card {i + 1}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-gray-500 mb-1">Emoji</label>
+                    <input value={b.emoji} onChange={e => atualizarBeneficio(i, 'emoji', e.target.value)} className="w-full border border-gray-200 rounded-lg p-2 text-center text-lg focus:outline-none focus:border-rosa" maxLength={4} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-500 mb-1">Título</label>
+                    <input value={b.titulo} onChange={e => atualizarBeneficio(i, 'titulo', e.target.value)} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-rosa" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-500 mb-1">Subtítulo</label>
+                    <input value={b.sub} onChange={e => atualizarBeneficio(i, 'sub', e.target.value)} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-rosa" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Secao>
+
+        {/* ── 9. NEWSLETTER ── */}
+        <Secao
+          titulo="Newsletter"
+          emoji="📧"
+          sub="Título e subtítulo da seção de email"
+          aberto={aberto === 'newsletter'}
+          onToggle={() => toggle('newsletter')}
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
+              <input value={config.newsletter.headline} onChange={e => atualizarNewsletter('headline', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Subtítulo</label>
+              <textarea value={config.newsletter.subtitulo} onChange={e => atualizarNewsletter('subtitulo', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-rosa" rows={2} />
+            </div>
           </div>
         </Secao>
 

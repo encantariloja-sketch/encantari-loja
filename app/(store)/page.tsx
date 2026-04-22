@@ -60,12 +60,14 @@ export default async function Home() {
               >
                 {config.hero.cta_texto} <ArrowRight size={16} />
               </Link>
-              <Link
-                href="/produtos?categoria=silvanian"
-                className="inline-flex items-center gap-2 border border-white/30 text-white px-7 py-3.5 rounded-full font-medium text-sm hover:bg-white/10 transition-colors backdrop-blur-sm"
-              >
-                Silvanian Families
-              </Link>
+              {config.hero.cta2_texto && (
+                <Link
+                  href={config.hero.cta2_link}
+                  className="inline-flex items-center gap-2 border border-white/30 text-white px-7 py-3.5 rounded-full font-medium text-sm hover:bg-white/10 transition-colors backdrop-blur-sm"
+                >
+                  {config.hero.cta2_texto}
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -165,27 +167,22 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <div>
-              <p className="text-rosa text-xs font-semibold tracking-widest uppercase mb-3">Nossa proposta</p>
+              <p className="text-rosa text-xs font-semibold tracking-widest uppercase mb-3">{config.institucional.label}</p>
               <h2 className="font-fraunces text-3xl md:text-4xl font-semibold text-vinho mb-5 leading-tight">
-                Presentes com alma,<br />
-                <span className="italic text-rosa">escolhidos com amor</span>
+                {config.institucional.titulo}<br />
+                <span className="italic text-rosa">{config.institucional.titulo_italic}</span>
               </h2>
               <p className="text-vinho/70 leading-relaxed mb-6">
-                A Encantari é uma curadoria especial de produtos únicos para decoração e presentes afetivos. Cada item é selecionado com carinho para trazer beleza, aconchego e emoção para o seu dia a dia e para as pessoas que você ama.
+                {config.institucional.corpo}
               </p>
-              <Link href="/produtos" className="btn-primary">
-                Conhecer a loja
+              <Link href={config.institucional.cta_link} className="btn-primary">
+                {config.institucional.cta_texto}
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: '🚚', titulo: 'Entrega para todo Brasil', sub: 'Via Melhor Envio' },
-                { icon: '✨', titulo: 'Produtos selecionados', sub: 'Curadoria especial' },
-                { icon: '💌', titulo: 'Atendimento próximo', sub: 'Respondemos rápido' },
-                { icon: '🎁', titulo: 'Embalagem presente', sub: 'Enviamos com cuidado' },
-              ].map(b => (
+              {config.institucional.beneficios.map(b => (
                 <div key={b.titulo} className="bg-white rounded-2xl p-5 border border-white/80">
-                  <span className="text-3xl block mb-2">{b.icon}</span>
+                  <span className="text-3xl block mb-2">{b.emoji}</span>
                   <p className="font-fraunces font-semibold text-vinho text-sm mb-0.5">{b.titulo}</p>
                   <p className="text-vinho/50 text-xs">{b.sub}</p>
                 </div>
@@ -223,10 +220,10 @@ export default async function Home() {
         <div className="max-w-2xl mx-auto text-center text-creme">
           <p className="text-rosa text-xs font-semibold tracking-widest uppercase mb-3">Newsletter</p>
           <h2 className="font-fraunces text-3xl md:text-4xl font-semibold mb-3">
-            Fique por dentro
+            {config.newsletter.headline}
           </h2>
           <p className="text-creme/60 mb-7">
-            Receba novidades, lançamentos e ofertas exclusivas diretamente no seu email.
+            {config.newsletter.subtitulo}
           </p>
           <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <input
