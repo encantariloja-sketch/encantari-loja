@@ -1,0 +1,245 @@
+import Link from 'next/link'
+import { ArrowRight, Star } from 'lucide-react'
+import Carrossel from '@/components/Carrossel'
+import { getHomeConfig } from '@/lib/homeConfig'
+import { produtos, categorias } from '@/data/produtos'
+
+async function getProdutosHome(config: Awaited<ReturnType<typeof getHomeConfig>>) {
+  // Lançamentos: IDs selecionados no admin, ou fallback = novos
+  const lancamentos = config.lancamentos_ids.length
+    ? config.lancamentos_ids.map(id => produtos.find(p => p.id === id)).filter(Boolean)
+    : produtos.filter(p => p.novo)
+
+  // Mais vendidos: IDs selecionados ou fallback = maisVendido flag
+  const maisVendidos = config.mais_vendidos_ids.length
+    ? config.mais_vendidos_ids.map(id => produtos.find(p => p.id === id)).filter(Boolean)
+    : produtos.filter(p => p.maisVendido)
+
+  return { lancamentos, maisVendidos }
+}
+
+export default async function Home() {
+  const config = await getHomeConfig()
+  const { lancamentos, maisVendidos } = await getProdutosHome(config)
+
+  const categoriasDestaque = config.categorias_destaque
+    .map(id => categorias.find(c => c.id === id))
+    .filter(Boolean) as typeof categorias
+
+  return (
+    <>
+
+      {/* ═══════════════ HERO ═══════════════ */}
+      <section
+        className="relative overflow-hidden"
+        style={{ backgroundColor: config.hero.cor_fundo }}
+      >
+        {/* Decorações */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full opacity-10" style={{ backgroundColor: '#EF9493' }} />
+          <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10" style={{ backgroundColor: '#F6CA99' }} />
+          <div className="absolute top-1/2 right-1/4 w-32 h-32 rounded-full opacity-5" style={{ backgroundColor: '#FEF4F3' }} />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 py-16 md:py-24 relative z-10">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-medium px-3 py-1.5 rounded-full mb-6 backdrop-blur-sm">
+              <Star size={12} className="fill-current text-bege" />
+              Curadoria especial para você
+            </div>
+            <h1 className="font-fraunces text-4xl sm:text-5xl md:text-6xl font-semibold text-white leading-[1.1] mb-5">
+              {config.hero.headline}
+            </h1>
+            <p className="text-white/70 text-lg leading-relaxed mb-8 max-w-xl">
+              {config.hero.subheadline}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={config.hero.cta_link}
+                className="inline-flex items-center gap-2 bg-white text-vinho px-7 py-3.5 rounded-full font-semibold text-sm hover:bg-creme transition-colors shadow-lg"
+              >
+                {config.hero.cta_texto} <ArrowRight size={16} />
+              </Link>
+              <Link
+                href="/produtos?categoria=silvanian"
+                className="inline-flex items-center gap-2 border border-white/30 text-white px-7 py-3.5 rounded-full font-medium text-sm hover:bg-white/10 transition-colors backdrop-blur-sm"
+              >
+                Silvanian Families
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ CATEGORIAS EM DESTAQUE ═══════════════ */}
+      <section className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+        <div className="flex items-end justify-between mb-6 md:mb-8">
+          <div>
+            <h2 className="section-title">Explorar por categoria</h2>
+          </div>
+          <Link href="/produtos" className="text-rosa text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all">
+            Ver tudo <ArrowRight size={14} />
+          </Link>
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
+          {categoriasDestaque.map(cat => (
+            <Link
+              key={cat.id}
+              href={`/produtos?categoria=${cat.id}`}
+              className="group flex flex-col items-center gap-2 p-3 md:p-4 rounded-2xl border border-gray-100 hover:border-rosa/40 hover:shadow-sm bg-white transition-all"
+            >
+              <div
+                className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-2xl md:text-3xl group-hover:scale-110 transition-transform"
+                style={{ backgroundColor: cat.cor + '22' }}
+              >
+                {cat.icone}
+              </div>
+              <span className="text-xs font-medium text-vinho/80 text-center leading-tight">{cat.nome}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════ LANÇAMENTOS ═══════════════ */}
+      {lancamentos.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 pb-12 md:pb-16">
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <h2 className="section-title">Lançamentos</h2>
+              <p className="section-subtitle">Novidades que você vai amar</p>
+            </div>
+            <Link href="/produtos?ordem=novos" className="text-rosa text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all">
+              Ver todos <ArrowRight size={14} />
+            </Link>
+          </div>
+          <Carrossel produtos={lancamentos as any} />
+        </section>
+      )}
+
+      {/* ═══════════════ BANNER EDITORIAL ═══════════════ */}
+      <section className="px-4 pb-12 md:pb-16">
+        <div
+          className="max-w-7xl mx-auto rounded-3xl overflow-hidden relative"
+          style={{ backgroundColor: config.banner_editorial.cor_fundo }}
+        >
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -bottom-8 -right-8 w-48 h-48 rounded-full opacity-10 bg-white" />
+            <div className="absolute top-4 left-1/2 w-24 h-24 rounded-full opacity-5 bg-white" />
+          </div>
+          <div className="relative z-10 px-8 md:px-16 py-12 md:py-16 text-white max-w-xl">
+            <p className="text-white/60 text-xs font-medium tracking-widest uppercase mb-3">Encantari</p>
+            <h2 className="font-fraunces text-3xl md:text-4xl font-semibold mb-3 leading-tight">
+              {config.banner_editorial.texto}
+            </h2>
+            <p className="text-white/70 text-base leading-relaxed mb-6">
+              {config.banner_editorial.subtexto}
+            </p>
+            <Link
+              href={config.banner_editorial.cta_link}
+              className="inline-flex items-center gap-2 bg-white text-vinho px-6 py-3 rounded-full text-sm font-semibold hover:bg-creme transition-colors"
+            >
+              {config.banner_editorial.cta_texto} <ArrowRight size={15} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ MAIS VENDIDOS ═══════════════ */}
+      {maisVendidos.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 pb-12 md:pb-16">
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <h2 className="section-title">Mais Vendidos</h2>
+              <p className="section-subtitle">Os queridinhos da nossa loja</p>
+            </div>
+            <Link href="/produtos" className="text-rosa text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all">
+              Ver todos <ArrowRight size={14} />
+            </Link>
+          </div>
+          <Carrossel produtos={maisVendidos as any} />
+        </section>
+      )}
+
+      {/* ═══════════════ BLOCO INSTITUCIONAL ═══════════════ */}
+      <section className="bg-creme py-12 md:py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            <div>
+              <p className="text-rosa text-xs font-semibold tracking-widest uppercase mb-3">Nossa proposta</p>
+              <h2 className="font-fraunces text-3xl md:text-4xl font-semibold text-vinho mb-5 leading-tight">
+                Presentes com alma,<br />
+                <span className="italic text-rosa">escolhidos com amor</span>
+              </h2>
+              <p className="text-vinho/70 leading-relaxed mb-6">
+                A Encantari é uma curadoria especial de produtos únicos para decoração e presentes afetivos. Cada item é selecionado com carinho para trazer beleza, aconchego e emoção para o seu dia a dia e para as pessoas que você ama.
+              </p>
+              <Link href="/produtos" className="btn-primary">
+                Conhecer a loja
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { icon: '🚚', titulo: 'Entrega para todo Brasil', sub: 'Via Melhor Envio' },
+                { icon: '✨', titulo: 'Produtos selecionados', sub: 'Curadoria especial' },
+                { icon: '💌', titulo: 'Atendimento próximo', sub: 'Respondemos rápido' },
+                { icon: '🎁', titulo: 'Embalagem presente', sub: 'Enviamos com cuidado' },
+              ].map(b => (
+                <div key={b.titulo} className="bg-white rounded-2xl p-5 border border-white/80">
+                  <span className="text-3xl block mb-2">{b.icon}</span>
+                  <p className="font-fraunces font-semibold text-vinho text-sm mb-0.5">{b.titulo}</p>
+                  <p className="text-vinho/50 text-xs">{b.sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ BANNERS MENORES ═══════════════ */}
+      <section className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {config.banners_menores.map((b, i) => (
+            <Link
+              key={i}
+              href={b.link}
+              className="group relative rounded-2xl overflow-hidden aspect-[4/3] flex items-end p-6 hover:shadow-lg transition-shadow"
+              style={{ backgroundColor: b.cor }}
+            >
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+              <div className="relative z-10 text-white">
+                <p className="font-fraunces text-xl font-semibold leading-tight">{b.titulo}</p>
+                <p className="text-white/70 text-sm mt-1">{b.subtitulo}</p>
+                <span className="inline-flex items-center gap-1 text-xs font-medium mt-2 text-white/80 group-hover:gap-2 transition-all">
+                  Explorar <ArrowRight size={12} />
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════ NEWSLETTER ═══════════════ */}
+      <section className="bg-vinho py-14 px-4">
+        <div className="max-w-2xl mx-auto text-center text-creme">
+          <p className="text-rosa text-xs font-semibold tracking-widest uppercase mb-3">Newsletter</p>
+          <h2 className="font-fraunces text-3xl md:text-4xl font-semibold mb-3">
+            Fique por dentro
+          </h2>
+          <p className="text-creme/60 mb-7">
+            Receba novidades, lançamentos e ofertas exclusivas diretamente no seu email.
+          </p>
+          <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <input
+              type="email"
+              placeholder="seu@email.com.br"
+              className="flex-1 px-5 py-3.5 rounded-full text-sm bg-white/10 border border-white/20 text-creme placeholder:text-creme/40 focus:outline-none focus:border-rosa backdrop-blur-sm"
+            />
+            <button type="submit" className="bg-rosa text-white px-7 py-3.5 rounded-full text-sm font-semibold hover:bg-rosa-light transition-colors whitespace-nowrap">
+              Inscrever
+            </button>
+          </form>
+        </div>
+      </section>
+    </>
+  )
+}
