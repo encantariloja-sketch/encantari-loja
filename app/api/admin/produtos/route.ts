@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     }
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
-    const { data, error } = await db.from('produtos').select('*').order('criado_em', { ascending: false })
+    const { data, error } = await db.from('produtos').select('*').order('nome', { ascending: true })
     if (error) throw error
     return NextResponse.json({ produtos: data })
   } catch {
