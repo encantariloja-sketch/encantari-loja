@@ -68,14 +68,23 @@ export default function AdminHomePage() {
   async function salvar() {
     setSalvando(true)
     try {
-      await fetch('/api/admin/home', {
+      const res = await fetch('/api/admin/home', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config }),
       })
-      setSalvo(true)
-      setTimeout(() => setSalvo(false), 2500)
-    } catch {}
+      const data = await res.json()
+      if (!res.ok || data.erro) {
+        alert('Erro ao salvar: ' + (data.erro || `HTTP ${res.status}`))
+      } else if (data.aviso) {
+        alert('Atenção: ' + data.aviso)
+      } else {
+        setSalvo(true)
+        setTimeout(() => setSalvo(false), 2500)
+      }
+    } catch (e: any) {
+      alert('Erro de conexão: ' + e.message)
+    }
     setSalvando(false)
   }
 

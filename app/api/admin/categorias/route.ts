@@ -76,14 +76,13 @@ export async function DELETE(req: Request) {
 }
 
 // PATCH — apaga tudo e recria as categorias padrão da Encantari
+// Produtos que usavam categorias antigas ficam com categoria=null (reatribuir depois)
 export async function PATCH(req: Request) {
   if (!isAuthorized(req)) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ ok: true, aviso: 'Supabase não configurado' })
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
-
-    await db.from('categorias').delete().neq('id', '')
 
     const padrao = [
       { id: 'cafes-chas',         nome: 'Cafés e Chás',          icone: '☕',   cor: '#C4956A', ordem: 1 },
@@ -94,9 +93,20 @@ export async function PATCH(req: Request) {
       { id: 'papelaria',          nome: 'Papelaria',             icone: '📓',   cor: '#6B7A8D', ordem: 6 },
       { id: 'silvanian',          nome: 'Silvanian Families',    icone: '🐿️',   cor: '#C49A6C', ordem: 7 },
     ]
-    const { error } = await db.from('categorias').insert(padrao)
+    const idsNovos = padrao.map(c => c.id)
+
+    // Primeiro: anular categoria dos produtos que NÃO usam nenhuma das novas categorias
+    // (evita FK violation ao deletar as categorias antigas)
+    await db.from('produtos').update({ categoria: null }).not('categoria', 'in', `(${idsNovos.map(id => `"${id}"`).join(',')})`)
+
+    // Apagar apenas categorias que não fazem parte das novas (para não duplicar)
+    await db.from('categorias').delete().not('id', 'in', `(${idsNovos.map(id => `"${id}"`).join(',')})`)
+
+    // Upsert das categorias padrão (cria ou atualiza se já existir com o mesmo id)
+    const { error } = await db.from('categorias').upsert(padrao, { onConflict: 'id' })
     if (error) throw error
-    return NextResponse.json({ ok: true })
+
+    return NextResponse.json({ ok: true, aviso: 'Categorias resetadas. Produtos que usavam categorias antigas precisam ser reatribuídos.' })
   } catch (err: any) {
     return NextResponse.json({ erro: err.message }, { status: 500 })
   }

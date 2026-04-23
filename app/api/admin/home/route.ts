@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       await db.from('configuracoes_home').insert({ config })
     }
     return NextResponse.json({ ok: true })
-  } catch (err) {
-    return NextResponse.json({ erro: 'Erro ao salvar' }, { status: 500 })
+  } catch (err: any) {
+    return NextResponse.json({ erro: err?.message || 'Erro ao salvar' }, { status: 500 })
   }
 }

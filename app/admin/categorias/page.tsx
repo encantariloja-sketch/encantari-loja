@@ -115,14 +115,19 @@ export default function AdminCategoriasPage() {
   }
 
   async function resetarParaPadrao() {
-    if (!confirm('Isso apagará TODAS as categorias atuais e reinstalará as 7 categorias padrão da Encantari. Continuar?')) return
+    if (!confirm('Isso apagará todas as categorias erradas e instalará as 7 categorias corretas da Encantari.\n\nProdutos em categorias erradas ficarão sem categoria e precisarão ser reatribuídos.\n\nContinuar?')) return
     setSalvando(true)
     try {
       const res = await fetch('/api/admin/categorias', { method: 'PATCH' })
-      if (!res.ok) throw new Error()
-      await carregar()
-    } catch {
-      alert('Erro ao resetar categorias.')
+      const data = await res.json()
+      if (!res.ok || data.erro) {
+        alert('Erro: ' + (data.erro || `HTTP ${res.status}`))
+      } else {
+        await carregar()
+        if (data.aviso) alert(data.aviso)
+      }
+    } catch (e: any) {
+      alert('Erro de conexão: ' + e.message)
     }
     setSalvando(false)
   }
