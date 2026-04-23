@@ -116,6 +116,8 @@ export const defaultConfig: HomeConfig = {
   },
 }
 
+const SINGLETON_ID = '00000000-0000-0000-0000-000000000001'
+
 export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
   try {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -126,8 +128,7 @@ export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
     const { data } = await db
       .from('configuracoes_home')
       .select('config')
-      .order('atualizado_em', { ascending: false, nullsFirst: false })
-      .limit(1)
+      .eq('id', SINGLETON_ID)
       .maybeSingle()
     if (!data?.config) return defaultConfig
     const saved = data.config as Partial<HomeConfig>
