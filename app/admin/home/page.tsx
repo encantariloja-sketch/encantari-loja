@@ -282,7 +282,7 @@ export default function AdminHomePage() {
             {config.lancamentos_ids.length === 0 && <p className="text-xs text-gray-400 py-2">Nenhum fixado — exibe automaticamente os mais novos.</p>}
             {config.lancamentos_ids.map(id => { const p = produtoPorId(id); if (!p) return null; return (
               <div key={id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5">
-                <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center text-xl">{ICONES_CAT[p.categoria] || '📦'}</div>
+                <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center text-xl">{ICONES_CAT[p.categoria ?? ''] || '📦'}</div>
                 <span className="flex-1 text-sm font-medium text-gray-800 truncate">{p.nome}</span>
                 <button onClick={() => removeProduto('lancamentos_ids', id)} className="p-1.5 text-gray-400 hover:text-red-500"><X size={16} /></button>
               </div>
@@ -297,7 +297,7 @@ export default function AdminHomePage() {
             {config.mais_vendidos_ids.length === 0 && <p className="text-xs text-gray-400 py-2">Nenhum fixado — exibe automaticamente os mais vendidos.</p>}
             {config.mais_vendidos_ids.map(id => { const p = produtoPorId(id); if (!p) return null; return (
               <div key={id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5">
-                <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center text-xl">{ICONES_CAT[p.categoria] || '📦'}</div>
+                <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center text-xl">{ICONES_CAT[p.categoria ?? ''] || '📦'}</div>
                 <span className="flex-1 text-sm font-medium text-gray-800 truncate">{p.nome}</span>
                 <button onClick={() => removeProduto('mais_vendidos_ids', id)} className="p-1.5 text-gray-400 hover:text-red-500"><X size={16} /></button>
               </div>
@@ -453,7 +453,7 @@ export default function AdminHomePage() {
                 const sel = config[campo].includes(p.id)
                 return (
                   <button key={p.id} onClick={() => addProduto(campo, p.id)} className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${sel ? 'border-vinho bg-vinho/5' : 'border-gray-100 hover:border-gray-200'}`}>
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-2xl">{ICONES_CAT[p.categoria] || '📦'}</div>
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-2xl">{ICONES_CAT[p.categoria ?? ''] || '📦'}</div>
                     <div className="flex-1 min-w-0"><p className="font-medium text-gray-900 text-sm truncate">{p.nome}</p><p className="text-gray-400 text-xs">R$ {p.preco.toFixed(2).replace('.', ',')}</p></div>
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${sel ? 'bg-vinho border-vinho' : 'border-gray-300'}`}>{sel && <Check size={12} className="text-white" />}</div>
                   </button>
