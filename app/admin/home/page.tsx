@@ -1,17 +1,15 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Check, Loader2, ChevronDown, ChevronUp, X, Search } from 'lucide-react'
-import Image from 'next/image'
+import { useState, useEffect, useRef } from 'react'
+import { Check, Loader2, ChevronDown, ChevronUp, X, Search, ImagePlus, Trash2 } from 'lucide-react'
 import { defaultConfig, type HomeConfig } from '@/lib/homeConfig'
 import { produtos as todosProdutos, categorias } from '@/data/produtos'
-import type { Produto } from '@/data/produtos'
 
 const CORES_HERO = [
-  { label: 'Vinho',    value: '#491E2F' },
-  { label: 'Rosa',     value: '#EF9493' },
-  { label: 'Oliva',    value: '#8F9150' },
-  { label: 'Bege',     value: '#C4956A' },
-  { label: 'Escuro',   value: '#1a1a1a' },
+  { label: 'Vinho',  value: '#491E2F' },
+  { label: 'Rosa',   value: '#EF9493' },
+  { label: 'Oliva',  value: '#8F9150' },
+  { label: 'Bege',   value: '#C4956A' },
+  { label: 'Escuro', value: '#1a1a1a' },
 ]
 
 const ICONES_CAT: Record<string, string> = {
@@ -19,7 +17,7 @@ const ICONES_CAT: Record<string, string> = {
   'flores-artificiais': '🌸', ceramicas: '🪴', papelaria: '📓', silvanian: '🐿️',
 }
 
-type Secao = 'topbar' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores' | 'institucional' | 'newsletter'
+type Secao = 'topbar' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores' | 'institucional' | 'newsletter' | 'configuracoes'
 
 export default function AdminHomePage() {
   const [config, setConfig] = useState<HomeConfig>(defaultConfig)
@@ -29,6 +27,8 @@ export default function AdminHomePage() {
   const [aberto, setAberto] = useState<Secao | null>(null)
   const [picker, setPicker] = useState<'lancamentos' | 'mais_vendidos' | null>(null)
   const [busca, setBusca] = useState('')
+  const [uploadandoHero, setUploadandoHero] = useState(false)
+  const heroInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/admin/home')
@@ -117,6 +117,29 @@ export default function AdminHomePage() {
     setConfig(c => ({ ...c, newsletter: { ...c.newsletter, [campo]: valor } }))
   }
 
+  async function uploadHero(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploadandoHero(true)
+    const urls: string[] = []
+    for (const file of Array.from(files)) {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('prefix', 'hero')
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+      const { url } = await res.json()
+      if (url) urls.push(url)
+    }
+    setConfig(c => ({ ...c, hero: { ...c.hero, imagens: [...(c.hero.imagens || []), ...urls] } }))
+    setUploadandoHero(false)
+  }
+
+  function removerHeroImagem(idx: number) {
+    setConfig(c => ({
+      ...c,
+      hero: { ...c.hero, imagens: c.hero.imagens.filter((_, i) => i !== idx) },
+    }))
+  }
+
   const produtosFiltrados = todosProdutos.filter(p =>
     p.nome.toLowerCase().includes(busca.toLowerCase()) ||
     p.categoria.includes(busca.toLowerCase())
@@ -153,13 +176,7 @@ export default function AdminHomePage() {
       <div className="space-y-3">
 
         {/* ── 1. FAIXA DO TOPO ── */}
-        <Secao
-          titulo="Faixa do topo"
-          emoji="📢"
-          sub={config.topbar.slice(0, 50) + '...'}
-          aberto={aberto === 'topbar'}
-          onToggle={() => toggle('topbar')}
-        >
+        <Secao titulo="Faixa do topo" emoji="📢" sub={config.topbar.slice(0, 50) + '...'} aberto={aberto === 'topbar'} onToggle={() => toggle('topbar')}>
           <textarea
             value={config.topbar}
             onChange={e => setConfig(c => ({ ...c, topbar: e.target.value }))}
@@ -170,14 +187,49 @@ export default function AdminHomePage() {
         </Secao>
 
         {/* ── 2. HERO ── */}
-        <Secao
-          titulo="Hero principal"
-          emoji="🎯"
-          sub="Título, texto e botão do banner principal"
-          aberto={aberto === 'hero'}
-          onToggle={() => toggle('hero')}
-        >
-          <div className="space-y-3">
+        <Secao titulo="Hero principal" emoji="🎯" sub="Título, fotos de capa e botões" aberto={aberto === 'hero'} onToggle={() => toggle('hero')}>
+          <div className="space-y-4">
+
+            {/* Fotos do carrossel */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-2">
+                Fotos do banner <span className="text-gray-400 font-normal">(carrossel automático)</span>
+              </label>
+              {(config.hero.imagens || []).length > 0 && (
+                <div className="flex gap-2 flex-wrap mb-3">
+                  {config.hero.imagens.map((url, i) => (
+                    <div key={url} className="relative group w-20 h-14 rounded-xl overflow-hidden border border-gray-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => removerHeroImagem(i)}
+                        className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={16} className="text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input
+                ref={heroInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={e => uploadHero(e.target.files)}
+              />
+              <button
+                onClick={() => heroInputRef.current?.click()}
+                disabled={uploadandoHero}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-rosa/40 text-rosa text-sm font-medium hover:border-rosa hover:bg-rosa/5 transition-all disabled:opacity-50"
+              >
+                {uploadandoHero ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                {uploadandoHero ? 'Enviando...' : 'Adicionar fotos'}
+              </button>
+              <p className="text-[11px] text-gray-400 mt-1.5">Selecione várias fotos de uma vez. Sem fotos, usa a cor de fundo.</p>
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
               <textarea
@@ -199,48 +251,29 @@ export default function AdminHomePage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Texto do botão principal</label>
-                <input
-                  value={config.hero.cta_texto}
-                  onChange={e => atualizarHero('cta_texto', e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa"
-                />
+                <input value={config.hero.cta_texto} onChange={e => atualizarHero('cta_texto', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Link do botão principal</label>
-                <input
-                  value={config.hero.cta_link}
-                  onChange={e => atualizarHero('cta_link', e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa"
-                />
+                <input value={config.hero.cta_link} onChange={e => atualizarHero('cta_link', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Texto do 2º botão</label>
-                <input
-                  value={config.hero.cta2_texto}
-                  onChange={e => atualizarHero('cta2_texto', e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa"
-                  placeholder="Deixe em branco para ocultar"
-                />
+                <input value={config.hero.cta2_texto} onChange={e => atualizarHero('cta2_texto', e.target.value)} placeholder="Deixe em branco para ocultar" className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Link do 2º botão</label>
-                <input
-                  value={config.hero.cta2_link}
-                  onChange={e => atualizarHero('cta2_link', e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa"
-                />
+                <input value={config.hero.cta2_link} onChange={e => atualizarHero('cta2_link', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-2">Cor de fundo</label>
+              <label className="block text-xs font-medium text-gray-600 mb-2">Cor de fundo (quando sem foto)</label>
               <div className="flex gap-2 flex-wrap">
                 {CORES_HERO.map(c => (
                   <button
                     key={c.value}
                     onClick={() => atualizarHero('cor_fundo', c.value)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium border-2 transition-all ${
-                      config.hero.cor_fundo === c.value ? 'border-vinho' : 'border-transparent'
-                    }`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium border-2 transition-all ${config.hero.cor_fundo === c.value ? 'border-vinho' : 'border-transparent'}`}
                     style={{ backgroundColor: c.value + '22' }}
                   >
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: c.value }} />
@@ -248,11 +281,7 @@ export default function AdminHomePage() {
                   </button>
                 ))}
               </div>
-              {/* Preview */}
-              <div
-                className="mt-3 rounded-xl p-4 text-white text-sm font-fraunces font-semibold transition-all"
-                style={{ backgroundColor: config.hero.cor_fundo }}
-              >
+              <div className="mt-3 rounded-xl p-4 text-white text-sm font-fraunces font-semibold transition-all" style={{ backgroundColor: config.hero.cor_fundo }}>
                 {config.hero.headline}
               </div>
             </div>
@@ -260,13 +289,7 @@ export default function AdminHomePage() {
         </Secao>
 
         {/* ── 3. CATEGORIAS ── */}
-        <Secao
-          titulo="Categorias em destaque"
-          emoji="📂"
-          sub={`${config.categorias_destaque.length} categorias selecionadas`}
-          aberto={aberto === 'categorias'}
-          onToggle={() => toggle('categorias')}
-        >
+        <Secao titulo="Categorias em destaque" emoji="📂" sub={`${config.categorias_destaque.length} categorias selecionadas`} aberto={aberto === 'categorias'} onToggle={() => toggle('categorias')}>
           <p className="text-xs text-gray-400 mb-3">Ative/desative e use as setas para ordenar</p>
           <div className="space-y-2">
             {categorias.map(cat => {
@@ -276,9 +299,7 @@ export default function AdminHomePage() {
                 <div key={cat.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${ativo ? 'border-vinho/30 bg-vinho/5' : 'border-gray-100 bg-white'}`}>
                   <button
                     onClick={() => toggleCategoria(cat.id)}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                      ativo ? 'bg-vinho border-vinho' : 'border-gray-300'
-                    }`}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${ativo ? 'bg-vinho border-vinho' : 'border-gray-300'}`}
                   >
                     {ativo && <Check size={12} className="text-white" />}
                   </button>
@@ -286,12 +307,8 @@ export default function AdminHomePage() {
                   <span className="flex-1 text-sm font-medium text-gray-800">{cat.nome}</span>
                   {ativo && (
                     <div className="flex gap-1">
-                      <button onClick={() => moverCategoria(cat.id, 'up')} disabled={idx === 0} className="p-1 text-gray-400 hover:text-vinho disabled:opacity-30">
-                        <ChevronUp size={16} />
-                      </button>
-                      <button onClick={() => moverCategoria(cat.id, 'down')} disabled={idx === config.categorias_destaque.length - 1} className="p-1 text-gray-400 hover:text-vinho disabled:opacity-30">
-                        <ChevronDown size={16} />
-                      </button>
+                      <button onClick={() => moverCategoria(cat.id, 'up')} disabled={idx === 0} className="p-1 text-gray-400 hover:text-vinho disabled:opacity-30"><ChevronUp size={16} /></button>
+                      <button onClick={() => moverCategoria(cat.id, 'down')} disabled={idx === config.categorias_destaque.length - 1} className="p-1 text-gray-400 hover:text-vinho disabled:opacity-30"><ChevronDown size={16} /></button>
                     </div>
                   )}
                 </div>
@@ -301,85 +318,49 @@ export default function AdminHomePage() {
         </Secao>
 
         {/* ── 4. LANÇAMENTOS ── */}
-        <Secao
-          titulo="Lançamentos"
-          emoji="🆕"
-          sub={config.lancamentos_ids.length ? `${config.lancamentos_ids.length} produtos selecionados` : 'Automático (produtos com badge Novo)'}
-          aberto={aberto === 'lancamentos'}
-          onToggle={() => toggle('lancamentos')}
-        >
+        <Secao titulo="Lançamentos" emoji="🆕" sub={config.lancamentos_ids.length ? `${config.lancamentos_ids.length} produtos selecionados` : 'Automático (produtos com badge Novo)'} aberto={aberto === 'lancamentos'} onToggle={() => toggle('lancamentos')}>
           <div className="space-y-2 mb-3">
-            {config.lancamentos_ids.length === 0 && (
-              <p className="text-xs text-gray-400 py-2">Nenhum produto fixado — exibe automaticamente os mais novos.</p>
-            )}
+            {config.lancamentos_ids.length === 0 && <p className="text-xs text-gray-400 py-2">Nenhum produto fixado — exibe automaticamente os mais novos.</p>}
             {config.lancamentos_ids.map(id => {
               const p = produtoPorId(id)
               if (!p) return null
               return (
                 <div key={id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5">
-                  <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center text-xl">
-                    {ICONES_CAT[p.categoria] || '📦'}
-                  </div>
+                  <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center text-xl">{ICONES_CAT[p.categoria] || '📦'}</div>
                   <span className="flex-1 text-sm font-medium text-gray-800 truncate">{p.nome}</span>
-                  <button onClick={() => removeProduto('lancamentos_ids', id)} className="p-1.5 text-gray-400 hover:text-red-500">
-                    <X size={16} />
-                  </button>
+                  <button onClick={() => removeProduto('lancamentos_ids', id)} className="p-1.5 text-gray-400 hover:text-red-500"><X size={16} /></button>
                 </div>
               )
             })}
           </div>
-          <button
-            onClick={() => { setPicker('lancamentos'); setBusca('') }}
-            className="w-full py-3 rounded-xl border-2 border-dashed border-rosa/40 text-rosa text-sm font-medium hover:border-rosa hover:bg-rosa/5 transition-all"
-          >
+          <button onClick={() => { setPicker('lancamentos'); setBusca('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-rosa/40 text-rosa text-sm font-medium hover:border-rosa hover:bg-rosa/5 transition-all">
             + Adicionar produto
           </button>
         </Secao>
 
         {/* ── 5. MAIS VENDIDOS ── */}
-        <Secao
-          titulo="Mais Vendidos"
-          emoji="⭐"
-          sub={config.mais_vendidos_ids.length ? `${config.mais_vendidos_ids.length} produtos selecionados` : 'Automático (flag maisVendido)'}
-          aberto={aberto === 'mais_vendidos'}
-          onToggle={() => toggle('mais_vendidos')}
-        >
+        <Secao titulo="Mais Vendidos" emoji="⭐" sub={config.mais_vendidos_ids.length ? `${config.mais_vendidos_ids.length} produtos selecionados` : 'Automático (flag maisVendido)'} aberto={aberto === 'mais_vendidos'} onToggle={() => toggle('mais_vendidos')}>
           <div className="space-y-2 mb-3">
-            {config.mais_vendidos_ids.length === 0 && (
-              <p className="text-xs text-gray-400 py-2">Nenhum produto fixado — exibe automaticamente os mais vendidos.</p>
-            )}
+            {config.mais_vendidos_ids.length === 0 && <p className="text-xs text-gray-400 py-2">Nenhum produto fixado — exibe automaticamente os mais vendidos.</p>}
             {config.mais_vendidos_ids.map(id => {
               const p = produtoPorId(id)
               if (!p) return null
               return (
                 <div key={id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5">
-                  <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center text-xl">
-                    {ICONES_CAT[p.categoria] || '📦'}
-                  </div>
+                  <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center text-xl">{ICONES_CAT[p.categoria] || '📦'}</div>
                   <span className="flex-1 text-sm font-medium text-gray-800 truncate">{p.nome}</span>
-                  <button onClick={() => removeProduto('mais_vendidos_ids', id)} className="p-1.5 text-gray-400 hover:text-red-500">
-                    <X size={16} />
-                  </button>
+                  <button onClick={() => removeProduto('mais_vendidos_ids', id)} className="p-1.5 text-gray-400 hover:text-red-500"><X size={16} /></button>
                 </div>
               )
             })}
           </div>
-          <button
-            onClick={() => { setPicker('mais_vendidos'); setBusca('') }}
-            className="w-full py-3 rounded-xl border-2 border-dashed border-vinho/30 text-vinho text-sm font-medium hover:border-vinho hover:bg-vinho/5 transition-all"
-          >
+          <button onClick={() => { setPicker('mais_vendidos'); setBusca('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-vinho/30 text-vinho text-sm font-medium hover:border-vinho hover:bg-vinho/5 transition-all">
             + Adicionar produto
           </button>
         </Secao>
 
         {/* ── 6. BANNER EDITORIAL ── */}
-        <Secao
-          titulo="Banner editorial"
-          emoji="📸"
-          sub="Banner intermediário entre as vitrines"
-          aberto={aberto === 'banner_editorial'}
-          onToggle={() => toggle('banner_editorial')}
-        >
+        <Secao titulo="Banner editorial" emoji="📸" sub="Banner intermediário entre as vitrines" aberto={aberto === 'banner_editorial'} onToggle={() => toggle('banner_editorial')}>
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
@@ -415,13 +396,7 @@ export default function AdminHomePage() {
         </Secao>
 
         {/* ── 7. BANNERS MENORES ── */}
-        <Secao
-          titulo="Banners menores"
-          emoji="🗂️"
-          sub="3 banners no rodapé da home"
-          aberto={aberto === 'banners_menores'}
-          onToggle={() => toggle('banners_menores')}
-        >
+        <Secao titulo="Banners menores" emoji="🗂️" sub="3 banners no rodapé da home" aberto={aberto === 'banners_menores'} onToggle={() => toggle('banners_menores')}>
           <div className="space-y-4">
             {config.banners_menores.map((b, i) => (
               <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3">
@@ -453,13 +428,7 @@ export default function AdminHomePage() {
         </Secao>
 
         {/* ── 8. BLOCO INSTITUCIONAL ── */}
-        <Secao
-          titulo="Bloco institucional"
-          emoji="🏡"
-          sub="Textos e cards da seção 'Nossa proposta'"
-          aberto={aberto === 'institucional'}
-          onToggle={() => toggle('institucional')}
-        >
+        <Secao titulo="Bloco institucional" emoji="🏡" sub="Textos e cards da seção 'Nossa proposta'" aberto={aberto === 'institucional'} onToggle={() => toggle('institucional')}>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -489,7 +458,7 @@ export default function AdminHomePage() {
                 <input value={config.institucional.cta_link} onChange={e => atualizarInstitucional('cta_link', e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rosa" />
               </div>
             </div>
-            <p className="text-xs font-semibold text-gray-500 pt-1">Cards de benefícios (4 cards)</p>
+            <p className="text-xs font-semibold text-gray-500 pt-1">Cards de benefícios</p>
             {config.institucional.beneficios.map((b, i) => (
               <div key={i} className="border border-gray-100 rounded-xl p-3 space-y-2">
                 <p className="text-[11px] text-gray-400 font-medium">Card {i + 1}</p>
@@ -513,13 +482,7 @@ export default function AdminHomePage() {
         </Secao>
 
         {/* ── 9. NEWSLETTER ── */}
-        <Secao
-          titulo="Newsletter"
-          emoji="📧"
-          sub="Título e subtítulo da seção de email"
-          aberto={aberto === 'newsletter'}
-          onToggle={() => toggle('newsletter')}
-        >
+        <Secao titulo="Newsletter" emoji="📧" sub="Título e subtítulo da seção de email" aberto={aberto === 'newsletter'} onToggle={() => toggle('newsletter')}>
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
@@ -532,51 +495,58 @@ export default function AdminHomePage() {
           </div>
         </Secao>
 
+        {/* ── 10. CONFIGURAÇÕES DA LOJA ── */}
+        <Secao titulo="Configurações da loja" emoji="⚙️" sub="WhatsApp e dados de contato" aberto={aberto === 'configuracoes'} onToggle={() => toggle('configuracoes')}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Número do WhatsApp</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">+</span>
+                <input
+                  value={config.whatsapp}
+                  onChange={e => setConfig(c => ({ ...c, whatsapp: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl pl-7 pr-4 py-3 text-sm focus:outline-none focus:border-rosa"
+                  placeholder="55 (11) 99999-9999 (só números)"
+                />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">Digite somente os números com DDD e DDI. Ex: 5511999999999</p>
+              {config.whatsapp && (
+                <a
+                  href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-green-600 mt-2 font-medium"
+                >
+                  ✓ Testar link do WhatsApp
+                </a>
+              )}
+            </div>
+          </div>
+        </Secao>
+
       </div>
 
       {/* ═══ PRODUTO PICKER MODAL ═══ */}
       {picker && (
         <div className="fixed inset-0 z-50 bg-black/50 flex flex-col justify-end md:justify-center md:items-center">
           <div className="bg-white rounded-t-3xl md:rounded-3xl w-full md:max-w-md md:mx-4 max-h-[85vh] flex flex-col">
-            {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900">
-                {picker === 'lancamentos' ? 'Lançamentos' : 'Mais Vendidos'}
-              </h3>
-              <button onClick={() => setPicker(null)} className="p-2 text-gray-400 hover:text-gray-700">
-                <X size={20} />
-              </button>
+              <h3 className="font-semibold text-gray-900">{picker === 'lancamentos' ? 'Lançamentos' : 'Mais Vendidos'}</h3>
+              <button onClick={() => setPicker(null)} className="p-2 text-gray-400 hover:text-gray-700"><X size={20} /></button>
             </div>
-            {/* Busca */}
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="Buscar produto..."
-                  value={busca}
-                  onChange={e => setBusca(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-rosa bg-gray-50"
-                />
+                <input autoFocus type="text" placeholder="Buscar produto..." value={busca} onChange={e => setBusca(e.target.value)} className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-rosa bg-gray-50" />
               </div>
             </div>
-            {/* Lista */}
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
               {produtosFiltrados.map(p => {
                 const campo = picker === 'lancamentos' ? 'lancamentos_ids' : 'mais_vendidos_ids'
                 const selecionado = config[campo].includes(p.id)
                 return (
-                  <button
-                    key={p.id}
-                    onClick={() => addProduto(campo, p.id)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                      selecionado ? 'border-vinho bg-vinho/5' : 'border-gray-100 hover:border-gray-200'
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-2xl">
-                      {ICONES_CAT[p.categoria] || '📦'}
-                    </div>
+                  <button key={p.id} onClick={() => addProduto(campo, p.id)} className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${selecionado ? 'border-vinho bg-vinho/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-2xl">{ICONES_CAT[p.categoria] || '📦'}</div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 text-sm truncate">{p.nome}</p>
                       <p className="text-gray-400 text-xs">R$ {p.preco.toFixed(2).replace('.', ',')}</p>
@@ -588,14 +558,8 @@ export default function AdminHomePage() {
                 )
               })}
             </div>
-            {/* Footer */}
             <div className="px-4 py-4 border-t border-gray-100">
-              <button
-                onClick={() => setPicker(null)}
-                className="w-full py-3.5 bg-vinho text-creme rounded-full font-semibold text-sm"
-              >
-                Confirmar seleção
-              </button>
+              <button onClick={() => setPicker(null)} className="w-full py-3.5 bg-vinho text-creme rounded-full font-semibold text-sm">Confirmar seleção</button>
             </div>
           </div>
         </div>
@@ -604,20 +568,14 @@ export default function AdminHomePage() {
   )
 }
 
-// ─── Componente de seção colapsável ───
-function Secao({
-  titulo, emoji, sub, aberto, onToggle, children
-}: {
+function Secao({ titulo, emoji, sub, aberto, onToggle, children }: {
   titulo: string; emoji: string; sub: string;
   aberto: boolean; onToggle: () => void;
   children: React.ReactNode
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 p-4 text-left touch-target"
-      >
+      <button onClick={onToggle} className="w-full flex items-center gap-3 p-4 text-left touch-target">
         <span className="text-2xl">{emoji}</span>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-900 text-sm">{titulo}</p>

@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   if (!file) return NextResponse.json({ erro: 'Arquivo não enviado' }, { status: 400 })
 
   const ext = file.name.split('.').pop() || 'jpg'
-  const nome = `produtos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const prefix = (formData.get('prefix') as string) || 'produtos'
+  const nome = `${prefix}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const db = createServiceClient()
   const buffer = Buffer.from(await file.arrayBuffer())

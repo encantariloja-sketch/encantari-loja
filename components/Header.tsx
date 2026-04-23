@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
-import { ShoppingBag, Search, Menu, X, ChevronDown } from 'lucide-react'
+import { ShoppingBag, Search, Menu, X, User } from 'lucide-react'
 import { useCart } from '@/lib/CartContext'
 import { categorias } from '@/data/produtos'
 
@@ -65,6 +65,13 @@ export default function Header({ topbar }: { topbar?: string }) {
               >
                 <Search size={21} />
               </button>
+              <Link
+                href="/conta"
+                className="p-2.5 text-vinho/70 hover:text-vinho transition-colors"
+                aria-label="Minha conta"
+              >
+                <User size={21} />
+              </Link>
               <Link
                 href="/carrinho"
                 className="relative p-2.5 text-vinho/70 hover:text-vinho transition-colors"
@@ -140,6 +147,7 @@ export default function Header({ topbar }: { topbar?: string }) {
               </div>
               <nav className="flex-1 overflow-y-auto py-4">
                 {[
+                  { label: '👤 Minha conta', href: '/conta' },
                   { label: '🎉 Lançamentos', href: '/produtos?ordem=novos' },
                   { label: '🏷️ Ofertas', href: '/produtos?ordem=ofertas' },
                   ...categorias.map(c => ({ label: `${c.icone} ${c.nome}`, href: `/produtos?categoria=${c.id}` })),

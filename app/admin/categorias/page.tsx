@@ -1,8 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Plus, Trash2, Check, Loader2, ChevronUp, ChevronDown, Edit2, X } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Trash2, Check, Loader2, ChevronUp, ChevronDown, Edit2, X, ImagePlus } from 'lucide-react'
 
-type Categoria = { id: string; nome: string; icone: string; cor: string; ordem: number }
+type Categoria = { id: string; nome: string; icone: string; cor: string; ordem: number; imagem?: string }
 
 const ICONES_SUGERIDOS = ['☕','🫖','🏺','🌸','🪴','📓','🐿️','🎁','🕯️','🧁','🍵','🎨','📚','🌿','🏡','✨','💐','🧸','🎀','🖼️','🍫','🪞','🧶','🌙','🎭']
 
@@ -11,14 +11,28 @@ const CORES_SUGERIDAS = [
   '#6B7A8D','#C49A6C','#491E2F','#8B7355','#5C8A7A',
 ]
 
+async function uploadImagem(file: File): Promise<string | null> {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('prefix', 'categorias')
+  const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+  const { url } = await res.json()
+  return url || null
+}
+
 export default function AdminCategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [mostraForm, setMostraForm] = useState(false)
   const [editando, setEditando] = useState<Categoria | null>(null)
+  const [uploadandoNova, setUploadandoNova] = useState(false)
+  const [uploadandoEdit, setUploadandoEdit] = useState(false)
 
-  const [form, setForm] = useState({ nome: '', icone: '✨', cor: '#EF9493' })
+  const [form, setForm] = useState({ nome: '', icone: '✨', cor: '#EF9493', imagem: '' })
+
+  const novaImgRef = useRef<HTMLInputElement>(null)
+  const editImgRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -38,11 +52,32 @@ export default function AdminCategoriasPage() {
       .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
   }
 
+  async function uploadNovaImagem(file: File) {
+    setUploadandoNova(true)
+    const url = await uploadImagem(file)
+    if (url) setForm(f => ({ ...f, imagem: url }))
+    setUploadandoNova(false)
+  }
+
+  async function uploadEditImagem(file: File) {
+    setUploadandoEdit(true)
+    const url = await uploadImagem(file)
+    if (url) setEditando(ed => ed ? { ...ed, imagem: url } : ed)
+    setUploadandoEdit(false)
+  }
+
   async function salvarNova() {
     if (!form.nome.trim()) return
     setSalvando(true)
     const novaOrdem = Math.max(...categorias.map(c => c.ordem), 0) + 1
-    const payload = { id: gerarId(form.nome), nome: form.nome.trim(), icone: form.icone, cor: form.cor, ordem: novaOrdem }
+    const payload: Categoria = {
+      id: gerarId(form.nome),
+      nome: form.nome.trim(),
+      icone: form.icone,
+      cor: form.cor,
+      ordem: novaOrdem,
+      ...(form.imagem ? { imagem: form.imagem } : {}),
+    }
     try {
       await fetch('/api/admin/categorias', {
         method: 'POST',
@@ -50,7 +85,7 @@ export default function AdminCategoriasPage() {
         body: JSON.stringify(payload),
       })
       setCategorias(prev => [...prev, payload])
-      setForm({ nome: '', icone: '✨', cor: '#EF9493' })
+      setForm({ nome: '', icone: '✨', cor: '#EF9493', imagem: '' })
       setMostraForm(false)
     } catch {}
     setSalvando(false)
@@ -86,7 +121,6 @@ export default function AdminCategoriasPage() {
     if (dir === 'down' && idx < arr.length - 1) { [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]] }
     const atualizadas = arr.map((c, i) => ({ ...c, ordem: i + 1 }))
     setCategorias(atualizadas)
-    // Persiste a nova ordem
     for (const cat of atualizadas) {
       await fetch('/api/admin/categorias', {
         method: 'PUT',
@@ -139,6 +173,39 @@ export default function AdminCategoriasPage() {
             )}
           </div>
 
+          {/* Foto de capa */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-2">Foto de capa <span className="text-gray-400 font-normal">(opcional — substitui o ícone)</span></label>
+            <input
+              ref={novaImgRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => e.target.files?.[0] && uploadNovaImagem(e.target.files[0])}
+            />
+            {form.imagem ? (
+              <div className="relative inline-block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.imagem} alt="Capa" className="w-20 h-20 rounded-2xl object-cover border border-gray-200" />
+                <button
+                  onClick={() => setForm(f => ({ ...f, imagem: '' }))}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => novaImgRef.current?.click()}
+                disabled={uploadandoNova}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-sm hover:border-rosa hover:text-rosa transition-all disabled:opacity-50"
+              >
+                {uploadandoNova ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                {uploadandoNova ? 'Enviando...' : 'Adicionar foto de capa'}
+              </button>
+            )}
+          </div>
+
           {/* Ícone */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-2">Ícone <span className="text-2xl ml-1">{form.icone}</span></label>
@@ -184,8 +251,14 @@ export default function AdminCategoriasPage() {
             </div>
             {/* Preview */}
             <div className="mt-3 flex items-center gap-3 p-3 rounded-xl border border-gray-100">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: form.cor + '33' }}>
-                {form.icone}
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl overflow-hidden"
+                style={form.imagem ? {} : { backgroundColor: form.cor + '33' }}
+              >
+                {form.imagem
+                  ? <img src={form.imagem} alt="" className="w-full h-full object-cover" />
+                  : form.icone
+                }
               </div>
               <span className="font-medium text-sm text-gray-900">{form.nome || 'Nome da categoria'}</span>
             </div>
@@ -210,14 +283,52 @@ export default function AdminCategoriasPage() {
             {editando?.id === cat.id ? (
               <div className="bg-white rounded-2xl border-2 border-vinho/30 p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-sm text-gray-900">Editar</p>
+                  <p className="font-semibold text-sm text-gray-900">Editar — {cat.nome}</p>
                   <button onClick={() => setEditando(null)}><X size={18} className="text-gray-400" /></button>
                 </div>
+
                 <input
                   value={editando.nome}
                   onChange={e => setEditando(ed => ed ? { ...ed, nome: e.target.value } : ed)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rosa"
                 />
+
+                {/* Foto de capa (edit) */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Foto de capa</label>
+                  <input
+                    ref={editImgRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => e.target.files?.[0] && uploadEditImagem(e.target.files[0])}
+                  />
+                  {editando.imagem ? (
+                    <div className="flex items-center gap-3">
+                      <div className="relative inline-block">
+                        <img src={editando.imagem} alt="Capa" className="w-16 h-16 rounded-xl object-cover border border-gray-200" />
+                        <button
+                          onClick={() => setEditando(ed => ed ? { ...ed, imagem: '' } : ed)}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                      <button onClick={() => editImgRef.current?.click()} className="text-xs text-rosa underline">Trocar foto</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => editImgRef.current?.click()}
+                      disabled={uploadandoEdit}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-sm hover:border-rosa hover:text-rosa transition-all disabled:opacity-50"
+                    >
+                      {uploadandoEdit ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+                      {uploadandoEdit ? 'Enviando...' : 'Adicionar foto'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Ícones */}
                 <div className="flex flex-wrap gap-2">
                   {ICONES_SUGERIDOS.map(ico => (
                     <button key={ico} onClick={() => setEditando(ed => ed ? { ...ed, icone: ico } : ed)}
@@ -226,6 +337,8 @@ export default function AdminCategoriasPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Cores */}
                 <div className="flex gap-2 flex-wrap items-center">
                   {CORES_SUGERIDAS.map(cor => (
                     <button key={cor} onClick={() => setEditando(ed => ed ? { ...ed, cor } : ed)}
@@ -234,6 +347,7 @@ export default function AdminCategoriasPage() {
                   ))}
                   <input type="color" value={editando.cor} onChange={e => setEditando(ed => ed ? { ...ed, cor: e.target.value } : ed)} className="w-7 h-7 rounded-full cursor-pointer border-0" />
                 </div>
+
                 <button onClick={salvarEdicao} disabled={salvando} className="w-full py-3 bg-vinho text-creme rounded-full font-semibold text-sm flex items-center justify-center gap-2">
                   {salvando ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                   Salvar
@@ -242,8 +356,14 @@ export default function AdminCategoriasPage() {
             ) : (
               /* Card normal */
               <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 p-3.5">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ backgroundColor: (cat.cor || '#EF9493') + '33' }}>
-                  {cat.icone}
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden"
+                  style={cat.imagem ? {} : { backgroundColor: (cat.cor || '#EF9493') + '33' }}
+                >
+                  {cat.imagem
+                    ? <img src={cat.imagem} alt={cat.nome} className="w-full h-full object-cover" />
+                    : cat.icone
+                  }
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 text-sm">{cat.nome}</p>

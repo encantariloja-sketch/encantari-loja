@@ -11,9 +11,15 @@ create table if not exists categorias (
   id text primary key,
   nome text not null,
   icone text,
+  cor text,
+  imagem text,
   ordem int default 0,
   criado_em timestamptz default now()
 );
+
+-- Colunas adicionadas posteriormente (seguro re-executar)
+alter table categorias add column if not exists cor text;
+alter table categorias add column if not exists imagem text;
 
 create table if not exists produtos (
   id uuid primary key default gen_random_uuid(),

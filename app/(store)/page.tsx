@@ -1,16 +1,17 @@
 import Link from 'next/link'
-import { ArrowRight, Star } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowRight } from 'lucide-react'
 import Carrossel from '@/components/Carrossel'
+import HeroCarrossel from '@/components/HeroCarrossel'
 import { getHomeConfig } from '@/lib/homeConfig'
-import { produtos, categorias } from '@/data/produtos'
+import { getCategorias } from '@/lib/getCategorias'
+import { produtos } from '@/data/produtos'
 
 async function getProdutosHome(config: Awaited<ReturnType<typeof getHomeConfig>>) {
-  // Lançamentos: IDs selecionados no admin, ou fallback = novos
   const lancamentos = config.lancamentos_ids.length
     ? config.lancamentos_ids.map(id => produtos.find(p => p.id === id)).filter(Boolean)
     : produtos.filter(p => p.novo)
 
-  // Mais vendidos: IDs selecionados ou fallback = maisVendido flag
   const maisVendidos = config.mais_vendidos_ids.length
     ? config.mais_vendidos_ids.map(id => produtos.find(p => p.id === id)).filter(Boolean)
     : produtos.filter(p => p.maisVendido)
@@ -19,59 +20,17 @@ async function getProdutosHome(config: Awaited<ReturnType<typeof getHomeConfig>>
 }
 
 export default async function Home() {
-  const config = await getHomeConfig()
+  const [config, todasCategorias] = await Promise.all([getHomeConfig(), getCategorias()])
   const { lancamentos, maisVendidos } = await getProdutosHome(config)
 
   const categoriasDestaque = config.categorias_destaque
-    .map(id => categorias.find(c => c.id === id))
-    .filter(Boolean) as typeof categorias
+    .map(id => todasCategorias.find(c => c.id === id))
+    .filter(Boolean) as typeof todasCategorias
 
   return (
     <>
-
       {/* ═══════════════ HERO ═══════════════ */}
-      <section
-        className="relative overflow-hidden"
-        style={{ backgroundColor: config.hero.cor_fundo }}
-      >
-        {/* Decorações */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full opacity-10" style={{ backgroundColor: '#EF9493' }} />
-          <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10" style={{ backgroundColor: '#F6CA99' }} />
-          <div className="absolute top-1/2 right-1/4 w-32 h-32 rounded-full opacity-5" style={{ backgroundColor: '#FEF4F3' }} />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 py-16 md:py-24 relative z-10">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-medium px-3 py-1.5 rounded-full mb-6 backdrop-blur-sm">
-              <Star size={12} className="fill-current text-bege" />
-              Curadoria especial para você
-            </div>
-            <h1 className="font-fraunces text-4xl sm:text-5xl md:text-6xl font-semibold text-white leading-[1.1] mb-5">
-              {config.hero.headline}
-            </h1>
-            <p className="text-white/70 text-lg leading-relaxed mb-8 max-w-xl">
-              {config.hero.subheadline}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href={config.hero.cta_link}
-                className="inline-flex items-center gap-2 bg-white text-vinho px-7 py-3.5 rounded-full font-semibold text-sm hover:bg-creme transition-colors shadow-lg"
-              >
-                {config.hero.cta_texto} <ArrowRight size={16} />
-              </Link>
-              {config.hero.cta2_texto && (
-                <Link
-                  href={config.hero.cta2_link}
-                  className="inline-flex items-center gap-2 border border-white/30 text-white px-7 py-3.5 rounded-full font-medium text-sm hover:bg-white/10 transition-colors backdrop-blur-sm"
-                >
-                  {config.hero.cta2_texto}
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroCarrossel config={config.hero} />
 
       {/* ═══════════════ CATEGORIAS EM DESTAQUE ═══════════════ */}
       <section className="max-w-7xl mx-auto px-4 py-12 md:py-16">
@@ -91,10 +50,13 @@ export default async function Home() {
               className="group flex flex-col items-center gap-2 p-3 md:p-4 rounded-2xl border border-gray-100 hover:border-rosa/40 hover:shadow-sm bg-white transition-all"
             >
               <div
-                className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-2xl md:text-3xl group-hover:scale-110 transition-transform"
-                style={{ backgroundColor: cat.cor + '22' }}
+                className="w-12 h-12 md:w-14 md:h-14 rounded-2xl overflow-hidden flex items-center justify-center text-2xl md:text-3xl group-hover:scale-110 transition-transform flex-shrink-0"
+                style={cat.imagem ? {} : { backgroundColor: cat.cor + '22' }}
               >
-                {cat.icone}
+                {cat.imagem
+                  ? <Image src={cat.imagem} alt={cat.nome} width={56} height={56} className="w-full h-full object-cover" />
+                  : cat.icone
+                }
               </div>
               <span className="text-xs font-medium text-vinho/80 text-center leading-tight">{cat.nome}</span>
             </Link>
@@ -202,6 +164,9 @@ export default async function Home() {
               className="group relative rounded-2xl overflow-hidden aspect-[4/3] flex items-end p-6 hover:shadow-lg transition-shadow"
               style={{ backgroundColor: b.cor }}
             >
+              {b.imagem && (
+                <Image src={b.imagem} alt={b.titulo} fill className="object-cover" />
+              )}
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
               <div className="relative z-10 text-white">
                 <p className="font-fraunces text-xl font-semibold leading-tight">{b.titulo}</p>

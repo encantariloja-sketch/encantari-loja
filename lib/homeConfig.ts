@@ -1,4 +1,7 @@
+import { cache } from 'react'
+
 export type HomeConfig = {
+  whatsapp: string
   topbar: string
   hero: {
     headline: string
@@ -8,7 +11,7 @@ export type HomeConfig = {
     cta2_texto: string
     cta2_link: string
     cor_fundo: string
-    imagem?: string
+    imagens: string[]
   }
   categorias_destaque: string[]
   lancamentos_ids: string[]
@@ -44,6 +47,7 @@ export type HomeConfig = {
 }
 
 export const defaultConfig: HomeConfig = {
+  whatsapp: '',
   topbar: 'Frete grátis para todo o Brasil acima de R$ 199 • Parcelamento em até 12×',
   hero: {
     headline: 'Presentes que encantam, decoração que transforma',
@@ -53,6 +57,7 @@ export const defaultConfig: HomeConfig = {
     cta2_texto: 'Silvanian Families',
     cta2_link: '/produtos?categoria=silvanian',
     cor_fundo: '#491E2F',
+    imagens: [],
   },
   categorias_destaque: ['cafes-chas', 'canecas', 'vasos', 'flores-artificiais', 'ceramicas', 'papelaria', 'silvanian'],
   lancamentos_ids: [],
@@ -89,7 +94,7 @@ export const defaultConfig: HomeConfig = {
   },
 }
 
-export async function getHomeConfig(): Promise<HomeConfig> {
+export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
   try {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return defaultConfig
@@ -101,9 +106,21 @@ export async function getHomeConfig(): Promise<HomeConfig> {
       .select('config')
       .limit(1)
       .maybeSingle()
-    if (data?.config) return { ...defaultConfig, ...(data.config as HomeConfig) }
-    return defaultConfig
+    if (!data?.config) return defaultConfig
+    const saved = data.config as Partial<HomeConfig>
+    return {
+      ...defaultConfig,
+      ...saved,
+      hero: { ...defaultConfig.hero, ...(saved.hero || {}) },
+      banner_editorial: { ...defaultConfig.banner_editorial, ...(saved.banner_editorial || {}) },
+      institucional: {
+        ...defaultConfig.institucional,
+        ...(saved.institucional || {}),
+        beneficios: saved.institucional?.beneficios ?? defaultConfig.institucional.beneficios,
+      },
+      newsletter: { ...defaultConfig.newsletter, ...(saved.newsletter || {}) },
+    }
   } catch {
     return defaultConfig
   }
-}
+})
