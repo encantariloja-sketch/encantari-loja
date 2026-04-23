@@ -44,10 +44,18 @@ export type HomeConfig = {
     headline: string
     subtitulo: string
   }
+  rodape: {
+    email: string
+    instagram: string
+    endereco: string
+    horario: string
+    ajuda: Array<{ label: string; href: string }>
+    institucional: Array<{ label: string; href: string }>
+  }
 }
 
 export const defaultConfig: HomeConfig = {
-  whatsapp: '',
+  whatsapp: '5541995872092',
   topbar: 'Frete grátis para todo o Brasil acima de R$ 199 • Parcelamento em até 12×',
   hero: {
     headline: 'Presentes que encantam, decoração que transforma',
@@ -92,6 +100,20 @@ export const defaultConfig: HomeConfig = {
     headline: 'Fique por dentro',
     subtitulo: 'Receba novidades, lançamentos e ofertas exclusivas diretamente no seu email.',
   },
+  rodape: {
+    email: 'encantari.loja@gmail.com',
+    instagram: 'encantari.loja',
+    endereco: 'R. Léa Vialle Cury, 146 - Centro\nMatinhos - PR, 83260-000',
+    horario: 'Seg–Sex, 9h às 18h',
+    ajuda: [
+      { label: 'Rastrear pedido', href: '/rastrear' },
+      { label: 'Fale conosco', href: '/contato' },
+    ],
+    institucional: [
+      { label: 'Sobre a Encantari', href: '/sobre' },
+      { label: 'Termos de uso', href: '/termos' },
+    ],
+  },
 }
 
 export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
@@ -108,6 +130,7 @@ export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
       .maybeSingle()
     if (!data?.config) return defaultConfig
     const saved = data.config as Partial<HomeConfig>
+    const savedRodape = (saved.rodape || {}) as Partial<HomeConfig['rodape']>
     return {
       ...defaultConfig,
       ...saved,
@@ -119,6 +142,12 @@ export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
         beneficios: saved.institucional?.beneficios ?? defaultConfig.institucional.beneficios,
       },
       newsletter: { ...defaultConfig.newsletter, ...(saved.newsletter || {}) },
+      rodape: {
+        ...defaultConfig.rodape,
+        ...savedRodape,
+        ajuda: savedRodape.ajuda ?? defaultConfig.rodape.ajuda,
+        institucional: savedRodape.institucional ?? defaultConfig.rodape.institucional,
+      },
     }
   } catch {
     return defaultConfig

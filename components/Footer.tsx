@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Instagram, Mail, MapPin, CreditCard, Shield, Truck, RefreshCcw } from 'lucide-react'
-import { categorias } from '@/data/produtos'
+import { Instagram, Mail, MapPin, Phone, CreditCard, Shield, Truck, RefreshCcw } from 'lucide-react'
+import { getHomeConfig } from '@/lib/homeConfig'
+import { getCategorias } from '@/lib/getCategorias'
 
-export default function Footer() {
+export default async function Footer() {
+  const [config, categorias] = await Promise.all([getHomeConfig(), getCategorias()])
+  const { rodape } = config
+  const waNum = config.whatsapp.replace(/\D/g, '')
+
   return (
     <footer className="bg-vinho text-creme/80 mt-16">
       {/* Benefícios */}
@@ -44,14 +49,18 @@ export default function Footer() {
               Curadoria especial de presentes, decoração e lifestyle para encantar cada momento.
             </p>
             <div className="flex gap-3 mt-4">
-              <a href="https://instagram.com/encantari.loja" target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-creme/10 flex items-center justify-center hover:bg-rosa transition-colors">
-                <Instagram size={16} />
-              </a>
-              <a href="mailto:encantari.loja@gmail.com"
-                className="w-9 h-9 rounded-full bg-creme/10 flex items-center justify-center hover:bg-rosa transition-colors">
-                <Mail size={16} />
-              </a>
+              {rodape.instagram && (
+                <a href={`https://instagram.com/${rodape.instagram}`} target="_blank" rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-creme/10 flex items-center justify-center hover:bg-rosa transition-colors">
+                  <Instagram size={16} />
+                </a>
+              )}
+              {rodape.email && (
+                <a href={`mailto:${rodape.email}`}
+                  className="w-9 h-9 rounded-full bg-creme/10 flex items-center justify-center hover:bg-rosa transition-colors">
+                  <Mail size={16} />
+                </a>
+              )}
             </div>
           </div>
 
@@ -73,14 +82,12 @@ export default function Footer() {
           <div>
             <h4 className="text-creme font-semibold text-sm mb-4">Ajuda</h4>
             <ul className="space-y-2.5">
-              {[
-                'Política de frete',
-                'Política de troca',
-                'Rastrear pedido',
-                'Perguntas frequentes',
-                'Fale conosco',
-              ].map(l => (
-                <li key={l}><a href="#" className="text-xs hover:text-creme transition-colors">{l}</a></li>
+              {rodape.ajuda.map(l => (
+                <li key={l.href}>
+                  <Link href={l.href} className="text-xs hover:text-creme transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
               ))}
             </ul>
           </div>
@@ -89,13 +96,12 @@ export default function Footer() {
           <div>
             <h4 className="text-creme font-semibold text-sm mb-4">Institucional</h4>
             <ul className="space-y-2.5">
-              {[
-                'Sobre a Encantari',
-                'Nossa história',
-                'Privacidade',
-                'Termos de uso',
-              ].map(l => (
-                <li key={l}><a href="#" className="text-xs hover:text-creme transition-colors">{l}</a></li>
+              {rodape.institucional.map(l => (
+                <li key={l.href}>
+                  <Link href={l.href} className="text-xs hover:text-creme transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
               ))}
             </ul>
           </div>
@@ -104,23 +110,43 @@ export default function Footer() {
           <div>
             <h4 className="text-creme font-semibold text-sm mb-4">Contato</h4>
             <ul className="space-y-3">
-              <li>
-                <a href="https://instagram.com/encantari.loja" target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs hover:text-creme transition-colors">
-                  <Instagram size={14} /> @encantari.loja
-                </a>
-              </li>
-              <li>
-                <a href="mailto:encantari.loja@gmail.com"
-                  className="flex items-center gap-2 text-xs hover:text-creme transition-colors">
-                  <Mail size={14} /> encantari.loja@gmail.com
-                </a>
-              </li>
+              {rodape.instagram && (
+                <li>
+                  <a href={`https://instagram.com/${rodape.instagram}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs hover:text-creme transition-colors">
+                    <Instagram size={14} /> @{rodape.instagram}
+                  </a>
+                </li>
+              )}
+              {rodape.email && (
+                <li>
+                  <a href={`mailto:${rodape.email}`}
+                    className="flex items-center gap-2 text-xs hover:text-creme transition-colors">
+                    <Mail size={14} /> {rodape.email}
+                  </a>
+                </li>
+              )}
+              {waNum && (
+                <li>
+                  <a href={`https://wa.me/${waNum}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs hover:text-creme transition-colors">
+                    <Phone size={14} /> WhatsApp
+                  </a>
+                </li>
+              )}
+              {rodape.endereco && (
+                <li className="flex items-start gap-2 text-xs text-creme/60">
+                  <MapPin size={14} className="mt-0.5 flex-shrink-0" />
+                  <span className="whitespace-pre-line">{rodape.endereco}</span>
+                </li>
+              )}
             </ul>
-            <div className="mt-5">
-              <p className="text-creme/50 text-xs">Atendimento</p>
-              <p className="text-xs mt-0.5">Seg–Sex, 9h às 18h</p>
-            </div>
+            {rodape.horario && (
+              <div className="mt-4">
+                <p className="text-creme/50 text-xs">Atendimento</p>
+                <p className="text-xs mt-0.5">{rodape.horario}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
