@@ -16,10 +16,11 @@ export async function GET() {
     }
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
-    const { data } = await db.from('configuracoes_home').select('config').limit(1).maybeSingle()
+    const { data, error } = await db.from('configuracoes_home').select('config').limit(1).maybeSingle()
+    if (error) throw error
     return NextResponse.json({ config: data?.config ? { ...defaultConfig, ...data.config } : defaultConfig })
-  } catch {
-    return NextResponse.json({ config: defaultConfig })
+  } catch (err: any) {
+    return NextResponse.json({ config: defaultConfig, aviso: 'Erro ao carregar config: ' + (err?.message || err) })
   }
 }
 
@@ -30,20 +31,34 @@ export async function POST(req: Request) {
 
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ ok: true, aviso: 'Supabase não configurado — alterações não persistidas' })
+      return NextResponse.json({ ok: true, aviso: 'SUPABASE_SERVICE_ROLE_KEY não configurado no servidor — alterações não persistidas' })
     }
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
 
-    // Upsert: se existe, atualiza; se não, cria
-    const { data: existe } = await db.from('configuracoes_home').select('id').limit(1).maybeSingle()
+    const { data: existe, error: errSel } = await db
+      .from('configuracoes_home')
+      .select('id')
+      .limit(1)
+      .maybeSingle()
+
+    if (errSel) throw errSel
+
     if (existe) {
-      await db.from('configuracoes_home').update({ config, atualizado_em: new Date().toISOString() }).eq('id', existe.id)
+      const { error } = await db
+        .from('configuracoes_home')
+        .update({ config, atualizado_em: new Date().toISOString() })
+        .eq('id', existe.id)
+      if (error) throw error
     } else {
-      await db.from('configuracoes_home').insert({ config })
+      const { error } = await db
+        .from('configuracoes_home')
+        .insert({ config })
+      if (error) throw error
     }
+
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ erro: err?.message || 'Erro ao salvar' }, { status: 500 })
+    return NextResponse.json({ erro: err?.message || String(err) }, { status: 500 })
   }
 }
