@@ -12,15 +12,21 @@ export async function GET() {
 
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ config: defaultConfig })
+      return NextResponse.json({ config: null })
     }
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
-    const { data, error } = await db.from('configuracoes_home').select('config').limit(1).maybeSingle()
+    const { data, error } = await db
+      .from('configuracoes_home')
+      .select('config')
+      .order('atualizado_em', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle()
     if (error) throw error
-    return NextResponse.json({ config: data?.config ? { ...defaultConfig, ...data.config } : defaultConfig })
+    // Return raw saved config — client merges with defaultConfig via mergeConfig()
+    return NextResponse.json({ config: data?.config ?? null })
   } catch (err: any) {
-    return NextResponse.json({ config: defaultConfig, aviso: 'Erro ao carregar config: ' + (err?.message || err) })
+    return NextResponse.json({ config: null, aviso: 'Erro ao carregar config: ' + (err?.message || err) })
   }
 }
 
@@ -36,13 +42,17 @@ export async function POST(req: Request) {
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
 
+    // Always get the most recent row (ORDER BY prevents non-deterministic LIMIT 1)
     const { data: existe, error: errSel } = await db
       .from('configuracoes_home')
       .select('id')
+      .order('atualizado_em', { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle()
 
     if (errSel) throw errSel
+
+    let savedId: string
 
     if (existe) {
       const { error } = await db
@@ -50,12 +60,19 @@ export async function POST(req: Request) {
         .update({ config, atualizado_em: new Date().toISOString() })
         .eq('id', existe.id)
       if (error) throw error
+      savedId = existe.id
     } else {
-      const { error } = await db
+      const { data: inserted, error } = await db
         .from('configuracoes_home')
-        .insert({ config })
+        .insert({ config, atualizado_em: new Date().toISOString() })
+        .select('id')
+        .single()
       if (error) throw error
+      savedId = inserted.id
     }
+
+    // Remove duplicate rows — this is a singleton config table
+    await db.from('configuracoes_home').delete().neq('id', savedId)
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {

@@ -126,6 +126,7 @@ export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
     const { data } = await db
       .from('configuracoes_home')
       .select('config')
+      .order('atualizado_em', { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle()
     if (!data?.config) return defaultConfig
