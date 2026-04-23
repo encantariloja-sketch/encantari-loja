@@ -4,13 +4,13 @@ import { produtos as fallback, type Produto } from '@/data/produtos'
 function normalizar(row: Record<string, any>): Produto {
   return {
     id: row.id,
-    slug: row.slug,
-    nome: row.nome,
+    slug: row.slug || '',
+    nome: row.nome || '',
     descricao: row.descricao || '',
     categoria: row.categoria || '',
-    preco: Number(row.preco),
+    preco: Number(row.preco) || 0,
     precoAntigo: row.preco_antigo ? Number(row.preco_antigo) : undefined,
-    sku: row.sku,
+    sku: row.sku || undefined,
     imagem: row.imagem || '',
     imagens: row.imagens || [],
     estoque: row.estoque || 'disponivel',
@@ -26,16 +26,16 @@ function normalizar(row: Record<string, any>): Produto {
 
 export const getProdutos = cache(async (): Promise<Produto[]> => {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return fallback
-    }
-    const { createServiceClient } = await import('./supabase')
-    const db = createServiceClient()
-    const { data } = await db
-      .from('produtos')
-      .select('*')
-      .order('criado_em', { ascending: false })
-    return data?.length ? data.map(normalizar) : fallback
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!url || !key) return fallback
+
+    const { createClient } = await import('@supabase/supabase-js')
+    const db = createClient(url, key)
+    const { data, error } = await db.from('produtos').select('*')
+    if (error || !data?.length) return fallback
+    return data.map(normalizar)
   } catch {
     return fallback
   }

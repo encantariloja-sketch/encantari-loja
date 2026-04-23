@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import SiteHeader from '@/components/SiteHeader'
 import Footer from '@/components/Footer'
 import WhatsappButton from '@/components/WhatsappButton'

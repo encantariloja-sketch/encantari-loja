@@ -118,11 +118,12 @@ export const defaultConfig: HomeConfig = {
 
 export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return defaultConfig
-    }
-    const { createServiceClient } = await import('./supabase')
-    const db = createServiceClient()
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !key) return defaultConfig
+
+    const { createClient } = await import('@supabase/supabase-js')
+    const db = createClient(url, key)
     const { data } = await db
       .from('configuracoes_home')
       .select('config')
