@@ -74,3 +74,30 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ erro: err.message }, { status: 500 })
   }
 }
+
+// PATCH — apaga tudo e recria as categorias padrão da Encantari
+export async function PATCH(req: Request) {
+  if (!isAuthorized(req)) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
+  try {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ ok: true, aviso: 'Supabase não configurado' })
+    const { createServiceClient } = await import('@/lib/supabase')
+    const db = createServiceClient()
+
+    await db.from('categorias').delete().neq('id', '')
+
+    const padrao = [
+      { id: 'cafes-chas',         nome: 'Cafés e Chás',          icone: '☕',   cor: '#C4956A', ordem: 1 },
+      { id: 'canecas',            nome: 'Canecas',               icone: '🫖',   cor: '#EF9493', ordem: 2 },
+      { id: 'vasos',              nome: 'Vasos',                 icone: '🏺',   cor: '#8F9150', ordem: 3 },
+      { id: 'flores-artificiais', nome: 'Flores Artificiais',    icone: '🌸',   cor: '#D4848A', ordem: 4 },
+      { id: 'ceramicas',          nome: 'Cerâmicas Decorativas', icone: '🪴',   cor: '#9B6B50', ordem: 5 },
+      { id: 'papelaria',          nome: 'Papelaria',             icone: '📓',   cor: '#6B7A8D', ordem: 6 },
+      { id: 'silvanian',          nome: 'Silvanian Families',    icone: '🐿️',   cor: '#C49A6C', ordem: 7 },
+    ]
+    const { error } = await db.from('categorias').insert(padrao)
+    if (error) throw error
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    return NextResponse.json({ erro: err.message }, { status: 500 })
+  }
+}

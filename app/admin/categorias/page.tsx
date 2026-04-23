@@ -114,6 +114,19 @@ export default function AdminCategoriasPage() {
     } catch {}
   }
 
+  async function resetarParaPadrao() {
+    if (!confirm('Isso apagará TODAS as categorias atuais e reinstalará as 7 categorias padrão da Encantari. Continuar?')) return
+    setSalvando(true)
+    try {
+      const res = await fetch('/api/admin/categorias', { method: 'PATCH' })
+      if (!res.ok) throw new Error()
+      await carregar()
+    } catch {
+      alert('Erro ao resetar categorias.')
+    }
+    setSalvando(false)
+  }
+
   async function mover(id: string, dir: 'up' | 'down') {
     const arr = [...categorias]
     const idx = arr.findIndex(c => c.id === id)
@@ -143,12 +156,22 @@ export default function AdminCategoriasPage() {
           <h1 className="text-xl font-semibold text-gray-900">Categorias</h1>
           <p className="text-gray-400 text-sm">{categorias.length} categorias</p>
         </div>
-        <button
-          onClick={() => { setMostraForm(true); setEditando(null) }}
-          className="flex items-center gap-2 bg-vinho text-creme px-4 py-2.5 rounded-full text-sm font-semibold hover:bg-vinho-light transition-colors touch-target"
-        >
-          <Plus size={16} /> Nova
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={resetarParaPadrao}
+            disabled={salvando}
+            className="flex items-center gap-2 border border-gray-200 text-gray-500 px-4 py-2.5 rounded-full text-sm font-medium hover:border-red-300 hover:text-red-500 transition-colors touch-target"
+            title="Apaga tudo e reinstala as 7 categorias padrão"
+          >
+            Resetar padrão
+          </button>
+          <button
+            onClick={() => { setMostraForm(true); setEditando(null) }}
+            className="flex items-center gap-2 bg-vinho text-creme px-4 py-2.5 rounded-full text-sm font-semibold hover:bg-vinho-light transition-colors touch-target"
+          >
+            <Plus size={16} /> Nova
+          </button>
+        </div>
       </div>
 
       {/* Formulário nova categoria */}
