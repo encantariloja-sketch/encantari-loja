@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Check, Loader2, ChevronDown, ChevronUp, X, Search, ImagePlus, Trash2, Plus } from 'lucide-react'
 import { defaultConfig, type HomeConfig } from '@/lib/homeConfig'
-import { produtos as todosProdutos } from '@/data/produtos'
 
 const CORES_HERO = [
   { label: 'Vinho',  value: '#491E2F' },
@@ -18,6 +17,7 @@ const ICONES_CAT: Record<string, string> = {
 }
 
 type CatItem = { id: string; nome: string; icone: string; cor?: string }
+type ProdItem = { id: string; nome: string; categoria?: string; preco: number; imagem?: string }
 type Secao = 'topbar' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores' | 'institucional' | 'newsletter' | 'rodape' | 'configuracoes'
 
 function mergeConfig(saved: Partial<HomeConfig>): HomeConfig {
@@ -45,6 +45,7 @@ function mergeConfig(saved: Partial<HomeConfig>): HomeConfig {
 export default function AdminHomePage() {
   const [config, setConfig] = useState<HomeConfig>(defaultConfig)
   const [categoriasLista, setCategoriasLista] = useState<CatItem[]>([])
+  const [todosProdutos, setTodosProdutos] = useState<ProdItem[]>([])
   const [salvando, setSalvando] = useState(false)
   const [salvo, setSalvo] = useState(false)
   const [carregando, setCarregando] = useState(true)
@@ -58,9 +59,11 @@ export default function AdminHomePage() {
     Promise.all([
       fetch('/api/admin/home').then(r => r.json()),
       fetch('/api/admin/categorias').then(r => r.json()),
-    ]).then(([homeData, catData]) => {
+      fetch('/api/admin/produtos').then(r => r.json()),
+    ]).then(([homeData, catData, prodData]) => {
       setConfig(mergeConfig(homeData.config || {}))
       setCategoriasLista(catData.categorias || [])
+      setTodosProdutos(prodData.produtos || [])
       setCarregando(false)
     }).catch(() => setCarregando(false))
   }, [])
@@ -155,7 +158,8 @@ export default function AdminHomePage() {
   }
 
   const produtosFiltrados = todosProdutos.filter(p =>
-    p.nome.toLowerCase().includes(busca.toLowerCase()) || p.categoria.includes(busca.toLowerCase())
+    p.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    (p.categoria || '').toLowerCase().includes(busca.toLowerCase())
   )
   const produtoPorId = (id: string) => todosProdutos.find(p => p.id === id)
 

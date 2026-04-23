@@ -75,7 +75,7 @@ export default function ProductCard({ produto }: { produto: Produto }) {
       <div className="p-3 md:p-4 flex flex-col flex-1">
         <Link href={`/produto/${produto.slug}`} className="flex-1">
           <p className="text-vinho/50 text-[10px] uppercase tracking-wider mb-1 font-medium">
-            {produto.categoria.replace(/-/g, ' ')}
+            {(produto.categoria || '').replace(/-/g, ' ')}
           </p>
           <h3 className="font-fraunces text-vinho font-medium text-sm md:text-[15px] leading-snug hover:text-vinho-light transition-colors line-clamp-2">
             {produto.nome}

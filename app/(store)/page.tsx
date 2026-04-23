@@ -5,23 +5,22 @@ import Carrossel from '@/components/Carrossel'
 import HeroCarrossel from '@/components/HeroCarrossel'
 import { getHomeConfig } from '@/lib/homeConfig'
 import { getCategorias } from '@/lib/getCategorias'
-import { produtos } from '@/data/produtos'
-
-async function getProdutosHome(config: Awaited<ReturnType<typeof getHomeConfig>>) {
-  const lancamentos = config.lancamentos_ids.length
-    ? config.lancamentos_ids.map(id => produtos.find(p => p.id === id)).filter(Boolean)
-    : produtos.filter(p => p.novo)
-
-  const maisVendidos = config.mais_vendidos_ids.length
-    ? config.mais_vendidos_ids.map(id => produtos.find(p => p.id === id)).filter(Boolean)
-    : produtos.filter(p => p.maisVendido)
-
-  return { lancamentos, maisVendidos }
-}
+import { getProdutos } from '@/lib/getProdutos'
 
 export default async function Home() {
-  const [config, todasCategorias] = await Promise.all([getHomeConfig(), getCategorias()])
-  const { lancamentos, maisVendidos } = await getProdutosHome(config)
+  const [config, todasCategorias, todosProdutos] = await Promise.all([
+    getHomeConfig(),
+    getCategorias(),
+    getProdutos(),
+  ])
+
+  const lancamentos = config.lancamentos_ids.length
+    ? config.lancamentos_ids.map(id => todosProdutos.find(p => p.id === id)).filter(Boolean)
+    : todosProdutos.filter(p => p.novo).slice(0, 8)
+
+  const maisVendidos = config.mais_vendidos_ids.length
+    ? config.mais_vendidos_ids.map(id => todosProdutos.find(p => p.id === id)).filter(Boolean)
+    : todosProdutos.filter(p => p.destaque).slice(0, 8)
 
   const categoriasDestaque = config.categorias_destaque
     .map(id => todasCategorias.find(c => c.id === id))
