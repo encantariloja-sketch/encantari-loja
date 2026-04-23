@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
 import Carrossel from '@/components/Carrossel'
 import HeroCarrossel from '@/components/HeroCarrossel'
 import { getHomeConfig } from '@/lib/homeConfig'
@@ -34,19 +33,16 @@ function normalizar(row: Record<string, any>): Produto {
 }
 
 async function getVitrine(ids: string[], fallbackFiltro: 'novo' | 'destaque'): Promise<Produto[]> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return []
-
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return []
   try {
-    const db = createClient(url, key)
+    const { createServiceClient } = await import('@/lib/supabase')
+    const db = createServiceClient()
 
     if (ids.length > 0) {
       const { data } = await db.from('produtos').select('*').in('id', ids)
       if (data && data.length > 0) return data.map(normalizar)
     }
 
-    // fallback: busca automática por flag
     const { data } = await db.from('produtos').select('*').eq(fallbackFiltro, true).limit(8)
     return data ? data.map(normalizar) : []
   } catch {

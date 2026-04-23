@@ -26,16 +26,13 @@ function normalizar(row: Record<string, any>): Produto {
 
 export const getProdutos = cache(async (): Promise<Produto[]> => {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!url || !key) return fallback
-
-    const { createClient } = await import('@supabase/supabase-js')
-    const db = createClient(url, key)
-    const { data, error } = await db.from('produtos').select('*')
-    if (error || !data?.length) return fallback
-    return data.map(normalizar)
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return fallback
+    }
+    const { createServiceClient } = await import('./supabase')
+    const db = createServiceClient()
+    const { data } = await db.from('produtos').select('*')
+    return data?.length ? data.map(normalizar) : fallback
   } catch {
     return fallback
   }

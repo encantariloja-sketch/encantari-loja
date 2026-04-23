@@ -62,8 +62,8 @@ export const defaultConfig: HomeConfig = {
     subheadline: 'Curadoria especial de itens únicos para a sua casa e para as pessoas que você ama.',
     cta_texto: 'Explorar loja',
     cta_link: '/produtos',
-    cta2_texto: 'Silvanian Families',
-    cta2_link: '/produtos?categoria=silvanian',
+    cta2_texto: '',
+    cta2_link: '',
     cor_fundo: '#491E2F',
     imagens: [],
   },
@@ -118,12 +118,11 @@ export const defaultConfig: HomeConfig = {
 
 export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!url || !key) return defaultConfig
-
-    const { createClient } = await import('@supabase/supabase-js')
-    const db = createClient(url, key)
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return defaultConfig
+    }
+    const { createServiceClient } = await import('./supabase')
+    const db = createServiceClient()
     const { data } = await db
       .from('configuracoes_home')
       .select('config')
