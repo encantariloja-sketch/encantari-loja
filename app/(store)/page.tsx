@@ -3,26 +3,65 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
+import { createClient } from '@supabase/supabase-js'
 import Carrossel from '@/components/Carrossel'
 import HeroCarrossel from '@/components/HeroCarrossel'
 import { getHomeConfig } from '@/lib/homeConfig'
 import { getCategorias } from '@/lib/getCategorias'
-import { getProdutos } from '@/lib/getProdutos'
+import type { Produto } from '@/data/produtos'
+
+function normalizar(row: Record<string, any>): Produto {
+  return {
+    id: row.id,
+    slug: row.slug || '',
+    nome: row.nome || '',
+    descricao: row.descricao || '',
+    categoria: row.categoria || '',
+    preco: Number(row.preco) || 0,
+    precoAntigo: row.preco_antigo ? Number(row.preco_antigo) : undefined,
+    sku: row.sku || undefined,
+    imagem: row.imagem || '',
+    imagens: row.imagens || [],
+    estoque: row.estoque || 'disponivel',
+    destaque: row.destaque ?? false,
+    novo: row.novo ?? false,
+    peso: row.peso ? Number(row.peso) : undefined,
+    dimensoes: (row.comprimento && row.largura && row.altura)
+      ? { comprimento: Number(row.comprimento), largura: Number(row.largura), altura: Number(row.altura) }
+      : undefined,
+    tags: row.tags || [],
+  }
+}
+
+async function getVitrine(ids: string[], fallbackFiltro: 'novo' | 'destaque'): Promise<Produto[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return []
+
+  try {
+    const db = createClient(url, key)
+
+    if (ids.length > 0) {
+      const { data } = await db.from('produtos').select('*').in('id', ids)
+      if (data && data.length > 0) return data.map(normalizar)
+    }
+
+    // fallback: busca automática por flag
+    const { data } = await db.from('produtos').select('*').eq(fallbackFiltro, true).limit(8)
+    return data ? data.map(normalizar) : []
+  } catch {
+    return []
+  }
+}
 
 export default async function Home() {
-  const [config, todasCategorias, todosProdutos] = await Promise.all([
-    getHomeConfig(),
+  const config = await getHomeConfig()
+
+  const [todasCategorias, lancamentosFinais, maisVendidosFinais] = await Promise.all([
     getCategorias(),
-    getProdutos(),
+    getVitrine(config.lancamentos_ids, 'novo'),
+    getVitrine(config.mais_vendidos_ids, 'destaque'),
   ])
-
-  const lancamentos = config.lancamentos_ids.length
-    ? config.lancamentos_ids.map(id => todosProdutos.find(p => p.id === id)).filter(Boolean)
-    : todosProdutos.filter(p => p.novo).slice(0, 8)
-
-  const maisVendidos = config.mais_vendidos_ids.length
-    ? config.mais_vendidos_ids.map(id => todosProdutos.find(p => p.id === id)).filter(Boolean)
-    : todosProdutos.filter(p => p.destaque).slice(0, 8)
 
   const categoriasDestaque = config.categorias_destaque
     .map(id => todasCategorias.find(c => c.id === id))
@@ -66,7 +105,7 @@ export default async function Home() {
       </section>
 
       {/* ═══════════════ LANÇAMENTOS ═══════════════ */}
-      {lancamentos.length > 0 && (
+      {lancamentosFinais.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 pb-12 md:pb-16">
           <div className="flex items-end justify-between mb-6">
             <div>
@@ -77,7 +116,7 @@ export default async function Home() {
               Ver todos <ArrowRight size={14} />
             </Link>
           </div>
-          <Carrossel produtos={lancamentos as any} />
+          <Carrossel produtos={lancamentosFinais} />
         </section>
       )}
 
@@ -110,7 +149,7 @@ export default async function Home() {
       </section>
 
       {/* ═══════════════ MAIS VENDIDOS ═══════════════ */}
-      {maisVendidos.length > 0 && (
+      {maisVendidosFinais.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 pb-12 md:pb-16">
           <div className="flex items-end justify-between mb-6">
             <div>
@@ -121,7 +160,7 @@ export default async function Home() {
               Ver todos <ArrowRight size={14} />
             </Link>
           </div>
-          <Carrossel produtos={maisVendidos as any} />
+          <Carrossel produtos={maisVendidosFinais} />
         </section>
       )}
 

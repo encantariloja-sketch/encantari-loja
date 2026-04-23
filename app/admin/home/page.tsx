@@ -61,9 +61,15 @@ export default function AdminHomePage() {
       fetch('/api/admin/categorias').then(r => r.json()),
       fetch('/api/admin/produtos').then(r => r.json()),
     ]).then(([homeData, catData, prodData]) => {
-      setConfig(mergeConfig(homeData.config || {}))
+      const prods: { id: string; nome: string; categoria?: string; preco: number; imagem?: string }[] = prodData.produtos || []
+      const prodIds = new Set(prods.map(p => p.id))
+      const merged = mergeConfig(homeData.config || {})
+      // Remove IDs antigos/inválidos que não existem mais no banco
+      merged.lancamentos_ids = merged.lancamentos_ids.filter(id => prodIds.has(id))
+      merged.mais_vendidos_ids = merged.mais_vendidos_ids.filter(id => prodIds.has(id))
+      setConfig(merged)
       setCategoriasLista(catData.categorias || [])
-      setTodosProdutos(prodData.produtos || [])
+      setTodosProdutos(prods)
       setCarregando(false)
     }).catch(() => setCarregando(false))
   }, [])
