@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
-function isAuthorized(req: Request) {
-  const cookie = req.headers.get('cookie') || ''
-  const key = cookie.match(/admin-key=([^;]+)/)?.[1]
+function isAuthorized() {
+  const key = cookies().get('admin-key')?.value
   return key === (process.env.ADMIN_PASSWORD || 'encantari2024')
 }
 
 export async function GET(req: Request) {
-  if (!isAuthorized(req)) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
+  if (!isAuthorized()) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       const { produtos } = await import('@/data/produtos')
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!isAuthorized(req)) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
+  if (!isAuthorized()) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
   const body = await req.json()
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ ok: true, aviso: 'Supabase não configurado' })
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  if (!isAuthorized(req)) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
+  if (!isAuthorized()) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
   const { id, ...updates } = await req.json()
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ ok: true, aviso: 'Supabase não configurado' })
@@ -55,7 +55,7 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!isAuthorized(req)) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
+  if (!isAuthorized()) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ erro: 'ID obrigatório' }, { status: 400 })

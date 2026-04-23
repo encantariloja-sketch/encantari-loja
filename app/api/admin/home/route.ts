@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { defaultConfig } from '@/lib/homeConfig'
 
-function isAuthorized(req: Request) {
-  const cookie = req.headers.get('cookie') || ''
-  const key = cookie.match(/admin-key=([^;]+)/)?.[1]
+function isAuthorized() {
+  const key = cookies().get('admin-key')?.value
   return key === (process.env.ADMIN_PASSWORD || 'encantari2024')
 }
 
-export async function GET(req: Request) {
-  if (!isAuthorized(req)) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
+export async function GET() {
+  if (!isAuthorized()) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!isAuthorized(req)) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
+  if (!isAuthorized()) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   const { config } = await req.json()
 

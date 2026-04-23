@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase'
 
 export async function POST(req: Request) {
-  const cookie = req.headers.get('cookie') || ''
-  const adminKey = cookie.match(/admin-key=([^;]+)/)?.[1]
+  const adminKey = cookies().get('admin-key')?.value
   if (adminKey !== (process.env.ADMIN_PASSWORD || 'encantari2024')) {
     return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
   }
