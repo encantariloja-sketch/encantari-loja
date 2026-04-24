@@ -22,12 +22,8 @@ export async function POST(req: Request) {
 
   if (!token || !cepOrigem) {
     return NextResponse.json({
-      opcoes: [{
-        id: 'me-placeholder',
-        nome: 'Melhor Envio',
-        preco: 0,
-        prazo: 'Calculado após confirmação',
-      }]
+      opcoes: [],
+      aviso: 'Frete não configurado. Configure MELHOR_ENVIO_TOKEN e MELHOR_ENVIO_FROM_CEP nas variáveis de ambiente do Vercel.',
     })
   }
 
@@ -39,16 +35,15 @@ export async function POST(req: Request) {
       from: { postal_code: cepOrigem },
       to: { postal_code: cep_destino },
       package: {
-        height: dim.altura,
-        width: dim.largura,
-        length: dim.comprimento,
+        height: Math.max(dim.altura || 10, 1),
+        width: Math.max(dim.largura || 15, 1),
+        length: Math.max(dim.comprimento || 20, 1),
         weight: Math.max(pesoTotal, 0.1),
       },
       options: {
         receipt: false,
         own_hand: false,
       },
-      services: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17',
     }
 
     const res = await fetch(`${baseUrl}/api/v2/me/shipment/calculate`, {
@@ -60,35 +55,41 @@ export async function POST(req: Request) {
         'User-Agent': 'Encantari Loja (encantari.loja@gmail.com)',
       },
       body: JSON.stringify(body),
+      cache: 'no-store',
     })
+
+    if (!res.ok) {
+      const txt = await res.text()
+      throw new Error(`ME API ${res.status}: ${txt.slice(0, 200)}`)
+    }
 
     const data = await res.json()
 
     if (!Array.isArray(data)) {
-      throw new Error('Resposta inválida da API')
+      throw new Error(`Resposta inesperada: ${JSON.stringify(data).slice(0, 200)}`)
     }
 
     const opcoes = data
       .filter((s: any) => !s.error && s.price)
       .map((s: any) => ({
         id: String(s.id),
-        nome: `${s.company.name} — ${s.name}`,
+        nome: `${s.company?.name ?? 'Transportadora'} — ${s.name}`,
         preco: parseFloat(s.price),
-        prazo: `${s.delivery_time} dias úteis`,
+        prazo: s.delivery_time ? `${s.delivery_time} dias úteis` : '',
       }))
       .sort((a: any, b: any) => a.preco - b.preco)
       .slice(0, 5)
 
+    if (opcoes.length === 0) {
+      return NextResponse.json({ opcoes: [], aviso: 'Nenhuma opção de frete disponível para este CEP.' })
+    }
+
     return NextResponse.json({ opcoes })
-  } catch (err) {
-    console.error('Erro Melhor Envio:', err)
+  } catch (err: any) {
+    console.error('Erro Melhor Envio:', err?.message || err)
     return NextResponse.json({
-      opcoes: [{
-        id: 'me-erro',
-        nome: 'Frete padrão',
-        preco: 0,
-        prazo: 'Calculado após confirmação',
-      }]
+      opcoes: [],
+      aviso: `Erro ao calcular frete: ${err?.message || 'Tente novamente.'}`,
     })
   }
 }

@@ -24,6 +24,7 @@ export default function ProdutoPage() {
   const [cep, setCep] = useState('')
   const [loadingFrete, setLoadingFrete] = useState(false)
   const [opcoesFretes, setOpcoesFretes] = useState<any[]>([])
+  const [avisoFrete, setAvisoFrete] = useState('')
   const { adicionar } = useCart()
 
   useEffect(() => {
@@ -53,7 +54,10 @@ export default function ProdutoPage() {
       })
       const data = await res.json()
       setOpcoesFretes(data.opcoes || [])
-    } catch {}
+      setAvisoFrete(data.aviso || '')
+    } catch {
+      setAvisoFrete('Erro ao calcular frete. Tente novamente.')
+    }
     setLoadingFrete(false)
   }
 
@@ -165,6 +169,9 @@ export default function ProdutoPage() {
                       </div>
                     ))}
                   </div>
+                )}
+                {avisoFrete && opcoesFretes.length === 0 && (
+                  <p className="mt-3 text-xs text-vinho/60 bg-creme rounded-lg p-2">{avisoFrete}</p>
                 )}
               </div>
             )}

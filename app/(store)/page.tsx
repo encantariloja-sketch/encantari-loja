@@ -197,16 +197,25 @@ export default async function Home() {
             <Link
               key={i}
               href={b.link}
-              className="group relative rounded-2xl overflow-hidden aspect-[4/3] flex items-end p-6 hover:shadow-lg transition-shadow"
+              className="group relative rounded-2xl overflow-hidden aspect-[4/3] flex items-end p-5 md:p-6 hover:shadow-lg transition-shadow"
               style={{ backgroundColor: b.cor }}
             >
-              {b.imagem && (
-                <Image src={b.imagem} alt={b.titulo} fill className="object-cover" />
+              {b.imagem ? (
+                // PNG sem fundo: posicionado à direita sobre a cor, sem overlay escuro
+                <div className="absolute right-0 top-0 bottom-0 w-3/5 pointer-events-none overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={b.imagem}
+                    alt=""
+                    className="absolute bottom-0 right-0 max-h-full max-w-full object-contain object-right-bottom group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              ) : (
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
               )}
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-              <div className="relative z-10 text-white">
-                <p className="font-fraunces text-xl font-semibold leading-tight">{b.titulo}</p>
-                <p className="text-white/70 text-sm mt-1">{b.subtitulo}</p>
+              <div className={`relative z-10 text-white ${b.imagem ? 'max-w-[55%]' : ''}`}>
+                <p className="font-fraunces text-xl font-semibold leading-tight drop-shadow">{b.titulo}</p>
+                <p className="text-white/70 text-sm mt-1 drop-shadow">{b.subtitulo}</p>
                 <span className="inline-flex items-center gap-1 text-xs font-medium mt-2 text-white/80 group-hover:gap-2 transition-all">
                   Explorar <ArrowRight size={12} />
                 </span>

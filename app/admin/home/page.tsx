@@ -54,6 +54,11 @@ export default function AdminHomePage() {
   const [busca, setBusca] = useState('')
   const [uploadandoHero, setUploadandoHero] = useState(false)
   const heroInputRef = useRef<HTMLInputElement>(null)
+  const [uploadandoBanner, setUploadandoBanner] = useState([false, false, false])
+  const bannerRef0 = useRef<HTMLInputElement>(null)
+  const bannerRef1 = useRef<HTMLInputElement>(null)
+  const bannerRef2 = useRef<HTMLInputElement>(null)
+  const bannerInputRefs = [bannerRef0, bannerRef1, bannerRef2]
 
   useEffect(() => {
     Promise.all([
@@ -161,6 +166,19 @@ export default function AdminHomePage() {
   }
   function removerHeroImagem(idx: number) {
     setConfig(c => ({ ...c, hero: { ...c.hero, imagens: c.hero.imagens.filter((_, i) => i !== idx) } }))
+  }
+
+  async function uploadBannerImagem(idx: number, files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploadandoBanner(prev => prev.map((v, i) => i === idx ? true : v))
+    const fd = new FormData()
+    fd.append('file', files[0])
+    fd.append('prefix', 'banners')
+    try {
+      const { url } = await fetch('/api/admin/upload', { method: 'POST', body: fd }).then(r => r.json())
+      if (url) atualizarBannerMenor(idx, 'imagem', url)
+    } catch {}
+    setUploadandoBanner(prev => prev.map((v, i) => i === idx ? false : v))
   }
 
   const produtosFiltrados = todosProdutos.filter(p =>
@@ -335,6 +353,7 @@ export default function AdminHomePage() {
 
         {/* ── 7. BANNERS MENORES ── */}
         <Secao titulo="Banners menores" emoji="🗂️" sub="3 banners na home" aberto={aberto === 'banners_menores'} onToggle={() => toggle('banners_menores')}>
+          <p className="text-xs text-gray-400 mb-3">A imagem (PNG sem fundo) aparece sobre a cor de fundo, à direita. O texto fica à esquerda.</p>
           <div className="space-y-4">
             {config.banners_menores.map((b, i) => (
               <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3">
@@ -343,9 +362,39 @@ export default function AdminHomePage() {
                   <div><label className="block text-[11px] text-gray-500 mb-1">Título</label><input value={b.titulo} onChange={e => atualizarBannerMenor(i, 'titulo', e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-rosa" /></div>
                   <div><label className="block text-[11px] text-gray-500 mb-1">Subtítulo</label><input value={b.subtitulo} onChange={e => atualizarBannerMenor(i, 'subtitulo', e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-rosa" /></div>
                   <div><label className="block text-[11px] text-gray-500 mb-1">Link</label><input value={b.link} onChange={e => atualizarBannerMenor(i, 'link', e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-rosa" /></div>
-                  <div><label className="block text-[11px] text-gray-500 mb-1">Cor</label><input type="color" value={b.cor} onChange={e => atualizarBannerMenor(i, 'cor', e.target.value)} className="w-full h-10 rounded-lg border border-gray-200 cursor-pointer" /></div>
+                  <div><label className="block text-[11px] text-gray-500 mb-1">Cor de fundo</label><input type="color" value={b.cor} onChange={e => atualizarBannerMenor(i, 'cor', e.target.value)} className="w-full h-10 rounded-lg border border-gray-200 cursor-pointer" /></div>
                 </div>
-                <div className="rounded-lg p-3 text-white text-xs font-fraunces font-semibold" style={{ backgroundColor: b.cor }}>{b.titulo} — {b.subtitulo}</div>
+                {/* Imagem PNG sem fundo */}
+                <div>
+                  <label className="block text-[11px] text-gray-500 mb-1">Imagem PNG sem fundo <span className="text-gray-400 font-normal">(opcional)</span></label>
+                  {b.imagem && (
+                    <div className="relative group w-full h-20 rounded-xl overflow-hidden border border-gray-100 mb-2 flex items-center justify-center" style={{ backgroundColor: b.cor }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={b.imagem} alt="" className="h-full w-auto object-contain" />
+                      <button
+                        onClick={() => atualizarBannerMenor(i, 'imagem', '')}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  )}
+                  <input ref={bannerInputRefs[i]} type="file" accept="image/png,image/webp,image/*" className="hidden"
+                    onChange={e => uploadBannerImagem(i, e.target.files)} />
+                  <button onClick={() => bannerInputRefs[i]?.current?.click()} disabled={uploadandoBanner[i]}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-dashed border-rosa/40 text-rosa text-xs font-medium hover:border-rosa hover:bg-rosa/5 transition-all disabled:opacity-50">
+                    {uploadandoBanner[i] ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+                    {uploadandoBanner[i] ? 'Enviando...' : b.imagem ? 'Trocar imagem' : 'Adicionar imagem'}
+                  </button>
+                </div>
+                {/* Preview */}
+                <div className="relative rounded-lg overflow-hidden h-14 flex items-end p-2" style={{ backgroundColor: b.cor }}>
+                  {b.imagem && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={b.imagem} alt="" className="absolute right-1 bottom-0 h-full w-auto object-contain object-right-bottom" />
+                  )}
+                  {!b.imagem && <div className="absolute inset-0 bg-black/20" />}
+                  <p className="relative z-10 text-white text-xs font-fraunces font-semibold drop-shadow truncate max-w-[55%]">{b.titulo}</p>
+                </div>
               </div>
             ))}
           </div>
