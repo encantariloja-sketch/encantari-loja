@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { revalidatePath } from 'next/cache'
 import { defaultConfig } from '@/lib/homeConfig'
 
 // ID fixo — garante que sempre existe exatamente uma linha na tabela
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
 
     if (error) throw error
 
+    revalidatePath('/')
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ erro: err?.message || String(err) }, { status: 500 })

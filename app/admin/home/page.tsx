@@ -251,7 +251,8 @@ export default function AdminHomePage() {
 
         {/* ── 3. CATEGORIAS ── */}
         <Secao titulo="Categorias em destaque" emoji="📂" sub={`${config.categorias_destaque.length} categorias selecionadas`} aberto={aberto === 'categorias'} onToggle={() => toggle('categorias')}>
-          <p className="text-xs text-gray-400 mb-3">Ative/desative e use as setas para ordenar</p>
+          <p className="text-xs text-gray-400 mb-1">Aparecem como ícones clicáveis na seção <strong>"Explorar por categoria"</strong> da página inicial.</p>
+          <p className="text-xs text-gray-400 mb-3">Ative/desative e use as setas para ordenar.</p>
           {categoriasLista.length === 0 && <p className="text-xs text-gray-400 py-2">Carregando categorias...</p>}
           <div className="space-y-2">
             {categoriasLista.map(cat => {
@@ -278,6 +279,7 @@ export default function AdminHomePage() {
 
         {/* ── 4. LANÇAMENTOS ── */}
         <Secao titulo="Lançamentos" emoji="🆕" sub={config.lancamentos_ids.length ? `${config.lancamentos_ids.length} produtos selecionados` : 'Automático'} aberto={aberto === 'lancamentos'} onToggle={() => toggle('lancamentos')}>
+          <p className="text-xs text-gray-400 mb-3">Aparecem na vitrine <strong>"Lançamentos"</strong> da página inicial. Sem seleção: exibe automaticamente os que têm badge "Novo".</p>
           <div className="space-y-2 mb-3">
             {config.lancamentos_ids.length === 0 && <p className="text-xs text-gray-400 py-2">Nenhum fixado — exibe automaticamente os mais novos.</p>}
             {config.lancamentos_ids.map(id => { const p = produtoPorId(id); if (!p) return null; return (
@@ -293,6 +295,7 @@ export default function AdminHomePage() {
 
         {/* ── 5. MAIS VENDIDOS ── */}
         <Secao titulo="Mais Vendidos" emoji="⭐" sub={config.mais_vendidos_ids.length ? `${config.mais_vendidos_ids.length} produtos selecionados` : 'Automático'} aberto={aberto === 'mais_vendidos'} onToggle={() => toggle('mais_vendidos')}>
+          <p className="text-xs text-gray-400 mb-3">Aparecem na vitrine <strong>"Mais Vendidos"</strong> da página inicial. Sem seleção: exibe automaticamente os que têm "Em destaque" marcado.</p>
           <div className="space-y-2 mb-3">
             {config.mais_vendidos_ids.length === 0 && <p className="text-xs text-gray-400 py-2">Nenhum fixado — exibe automaticamente os mais vendidos.</p>}
             {config.mais_vendidos_ids.map(id => { const p = produtoPorId(id); if (!p) return null; return (
