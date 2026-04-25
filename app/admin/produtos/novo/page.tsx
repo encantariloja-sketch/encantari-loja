@@ -5,11 +5,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft, Camera, Upload, X, Plus, Loader2,
-  RotateCcw, Check
+  RotateCcw, Check, Palette,
 } from 'lucide-react'
 
 type Imagem = { url: string; arquivo?: File }
 type Categoria = { id: string; nome: string; icone: string }
+type OpcaoForm = { valor: string; hex?: string }
+type VariacaoForm = { tipo: string; opcoes: OpcaoForm[] }
 
 export default function NovoProdutoPage() {
   const router = useRouter()
@@ -19,6 +21,7 @@ export default function NovoProdutoPage() {
   const [streamAtivo, setStreamAtivo] = useState(false)
   const [fotoTirada, setFotoTirada] = useState(false)
   const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [variacoes, setVariacoes] = useState<VariacaoForm[]>([])
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -29,6 +32,7 @@ export default function NovoProdutoPage() {
     nome: '',
     descricao: '',
     categoria: '',
+    subcategoria: '',
     preco: '',
     precoAntigo: '',
     sku: '',
@@ -54,6 +58,37 @@ export default function NovoProdutoPage() {
 
   function atualizar(campo: string, valor: string | boolean) {
     setForm(f => ({ ...f, [campo]: valor }))
+  }
+
+  // === VARIAÇÕES ===
+  function adicionarVariacao() {
+    setVariacoes(v => [...v, { tipo: '', opcoes: [{ valor: '' }] }])
+  }
+  function removerVariacao(idx: number) {
+    setVariacoes(v => v.filter((_, i) => i !== idx))
+  }
+  function setTipoVariacao(vIdx: number, tipo: string) {
+    setVariacoes(v => v.map((vari, i) => i === vIdx ? { ...vari, tipo } : vari))
+  }
+  function adicionarOpcao(vIdx: number) {
+    setVariacoes(v => v.map((vari, i) =>
+      i === vIdx ? { ...vari, opcoes: [...vari.opcoes, { valor: '' }] } : vari
+    ))
+  }
+  function removerOpcao(vIdx: number, oIdx: number) {
+    setVariacoes(v => v.map((vari, i) =>
+      i === vIdx ? { ...vari, opcoes: vari.opcoes.filter((_, j) => j !== oIdx) } : vari
+    ))
+  }
+  function setOpcaoValor(vIdx: number, oIdx: number, valor: string) {
+    setVariacoes(v => v.map((vari, i) =>
+      i === vIdx ? { ...vari, opcoes: vari.opcoes.map((op, j) => j === oIdx ? { ...op, valor } : op) } : vari
+    ))
+  }
+  function setOpcaoHex(vIdx: number, oIdx: number, hex: string) {
+    setVariacoes(v => v.map((vari, i) =>
+      i === vIdx ? { ...vari, opcoes: vari.opcoes.map((op, j) => j === oIdx ? { ...op, hex } : op) } : vari
+    ))
   }
 
   // === CÂMERA ===
@@ -152,11 +187,23 @@ export default function NovoProdutoPage() {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
 
+      const variacoesLimpas = variacoes
+        .filter(v => v.tipo.trim())
+        .map(v => ({
+          tipo: v.tipo.trim(),
+          opcoes: v.opcoes.filter(o => o.valor.trim()).map(o => ({
+            valor: o.valor.trim(),
+            ...(o.hex ? { hex: o.hex } : {}),
+          })),
+        }))
+        .filter(v => v.opcoes.length > 0)
+
       const payload = {
         slug,
         nome: form.nome,
         descricao: form.descricao,
         categoria: form.categoria,
+        subcategoria: form.subcategoria.trim() || null,
         preco: parseFloat(form.preco),
         preco_antigo: form.precoAntigo ? parseFloat(form.precoAntigo) : null,
         sku: form.sku || null,
@@ -169,6 +216,7 @@ export default function NovoProdutoPage() {
         comprimento: form.comprimento ? parseFloat(form.comprimento) : null,
         largura: form.largura ? parseFloat(form.largura) : null,
         altura: form.altura ? parseFloat(form.altura) : null,
+        variacoes: variacoesLimpas.length > 0 ? variacoesLimpas : null,
       }
 
       const res = await fetch('/api/admin/produtos', {
@@ -293,6 +341,18 @@ export default function NovoProdutoPage() {
               <input className="input" value={form.sku} onChange={e => atualizar('sku', e.target.value)} placeholder="ENC-001" />
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Subcategoria <span className="font-normal text-gray-400">(opcional)</span>
+            </label>
+            <input
+              className="input"
+              value={form.subcategoria}
+              onChange={e => atualizar('subcategoria', e.target.value)}
+              placeholder="Ex: porcelana, caneca-grande, kit-presente..."
+            />
+            <p className="text-xs text-gray-400 mt-1">Produtos sem subcategoria aparecem na raiz da categoria.</p>
+          </div>
         </div>
 
         {/* === PREÇOS === */}
@@ -337,6 +397,99 @@ export default function NovoProdutoPage() {
               <span className="text-sm text-gray-700">Badge "Novo"</span>
             </label>
           </div>
+        </div>
+
+        {/* === VARIAÇÕES === */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900">Variações</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Ex: Cor, Tamanho, Material — deixe em branco se o produto não tem variações.</p>
+            </div>
+            <button
+              type="button"
+              onClick={adicionarVariacao}
+              className="flex items-center gap-1.5 text-sm font-medium text-vinho hover:text-vinho-light px-3 py-1.5 border border-vinho/30 rounded-xl hover:bg-vinho/5 transition-all"
+            >
+              <Plus size={15} /> Adicionar
+            </button>
+          </div>
+
+          {variacoes.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-5 border-2 border-dashed border-gray-100 rounded-xl">
+              Nenhuma variação cadastrada.
+            </p>
+          )}
+
+          {variacoes.map((variacao, vIdx) => {
+            const isCor = variacao.tipo.toLowerCase() === 'cor'
+            return (
+              <div key={vIdx} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
+                <div className="flex items-center gap-2">
+                  {isCor && <Palette size={16} className="text-rosa flex-shrink-0" />}
+                  <input
+                    type="text"
+                    value={variacao.tipo}
+                    onChange={e => setTipoVariacao(vIdx, e.target.value)}
+                    placeholder="Nome da variação (ex: Cor, Tamanho, Material)"
+                    className="input flex-1 text-sm bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removerVariacao(vIdx)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-2 pl-1">
+                  {variacao.opcoes.map((opcao, oIdx) => (
+                    <div key={oIdx} className="flex items-center gap-2">
+                      {isCor && (
+                        <div className="relative w-8 h-8 flex-shrink-0">
+                          <input
+                            type="color"
+                            value={opcao.hex || '#cccccc'}
+                            onChange={e => setOpcaoHex(vIdx, oIdx, e.target.value)}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+                            title="Clique para escolher a cor"
+                          />
+                          <div
+                            className="w-8 h-8 rounded-full border-2 border-white shadow ring-1 ring-gray-200 cursor-pointer"
+                            style={{ backgroundColor: opcao.hex || '#cccccc' }}
+                          />
+                        </div>
+                      )}
+                      <input
+                        type="text"
+                        value={opcao.valor}
+                        onChange={e => setOpcaoValor(vIdx, oIdx, e.target.value)}
+                        placeholder={isCor ? 'Nome da cor (ex: Vermelho Rubi)' : 'Valor da opção (ex: P, M, G)'}
+                        className="input flex-1 text-sm bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removerOpcao(vIdx, oIdx)}
+                        className="p-1.5 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => adicionarOpcao(vIdx)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-vinho/50 hover:text-vinho transition-colors ml-1"
+                >
+                  <Plus size={13} />
+                  {isCor ? 'Adicionar cor' : 'Adicionar opção'}
+                </button>
+              </div>
+            )
+          })}
         </div>
 
         {/* === FRETE === */}

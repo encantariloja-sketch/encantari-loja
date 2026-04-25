@@ -17,6 +17,7 @@ function ProdutosContent() {
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [categoriaAtiva, setCategoriaAtiva] = useState(categoriaParam)
+  const [subcategoriaAtiva, setSubcategoriaAtiva] = useState('todas')
   const [ordenar, setOrdenar] = useState(ordemParam)
 
   useEffect(() => {
@@ -29,16 +30,25 @@ function ProdutosContent() {
     }).catch(() => {}).finally(() => setCarregando(false))
   }, [])
 
+  const subcategoriasDaCategoria = useMemo(() => {
+    if (categoriaAtiva === 'todos') return []
+    const subs = produtos
+      .filter(p => p.categoria === categoriaAtiva && p.subcategoria)
+      .map(p => p.subcategoria as string)
+    return Array.from(new Set(subs)).sort()
+  }, [categoriaAtiva, produtos])
+
   const produtosFiltrados = useMemo(() => {
     let lista = [...produtos]
     if (categoriaAtiva !== 'todos') lista = lista.filter(p => p.categoria === categoriaAtiva)
+    if (subcategoriaAtiva !== 'todas') lista = lista.filter(p => p.subcategoria === subcategoriaAtiva)
     if (busca) lista = lista.filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()) || (p.descricao || '').toLowerCase().includes(busca.toLowerCase()))
     if (ordenar === 'menor') lista.sort((a, b) => a.preco - b.preco)
     if (ordenar === 'maior') lista.sort((a, b) => b.preco - a.preco)
     if (ordenar === 'novos') lista.sort((a, b) => (b.novo ? 1 : 0) - (a.novo ? 1 : 0))
     if (ordenar === 'ofertas') lista.sort((a, b) => ((b.precoAntigo ? 1 : 0) - (a.precoAntigo ? 1 : 0)))
     return lista
-  }, [categoriaAtiva, busca, ordenar, produtos])
+  }, [categoriaAtiva, subcategoriaAtiva, busca, ordenar, produtos])
 
   if (carregando) return (
     <div className="flex justify-center items-center py-32">
@@ -71,18 +81,33 @@ function ProdutosContent() {
         </select>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-8 scrollbar-hide">
-        <button onClick={() => setCategoriaAtiva('todos')}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+        <button onClick={() => { setCategoriaAtiva('todos'); setSubcategoriaAtiva('todas') }}
           className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${categoriaAtiva === 'todos' ? 'bg-vinho text-creme' : 'bg-white text-vinho border border-gray-200 hover:border-vinho'}`}>
           Todos
         </button>
         {categorias.map(cat => (
-          <button key={cat.id} onClick={() => setCategoriaAtiva(cat.id)}
+          <button key={cat.id} onClick={() => { setCategoriaAtiva(cat.id); setSubcategoriaAtiva('todas') }}
             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${categoriaAtiva === cat.id ? 'bg-vinho text-creme' : 'bg-white text-vinho border border-gray-200 hover:border-vinho'}`}>
             {cat.icone} {cat.nome}
           </button>
         ))}
       </div>
+
+      {subcategoriasDaCategoria.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-hide">
+          <button onClick={() => setSubcategoriaAtiva('todas')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${subcategoriaAtiva === 'todas' ? 'bg-rosa/20 text-vinho border-rosa/30' : 'bg-white text-vinho/60 border-gray-200 hover:border-rosa/40'}`}>
+            Todos
+          </button>
+          {subcategoriasDaCategoria.map(sub => (
+            <button key={sub} onClick={() => setSubcategoriaAtiva(sub)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border capitalize ${subcategoriaAtiva === sub ? 'bg-rosa/20 text-vinho border-rosa/30' : 'bg-white text-vinho/60 border-gray-200 hover:border-rosa/40'}`}>
+              {sub.replace(/-/g, ' ')}
+            </button>
+          ))}
+        </div>
+      )}
 
       {produtosFiltrados.length === 0 ? (
         <div className="text-center py-20 text-vinho/50">

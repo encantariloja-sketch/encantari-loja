@@ -80,6 +80,24 @@ export default function ProductCard({ produto }: { produto: Produto }) {
           <h3 className="font-fraunces text-vinho font-medium text-sm md:text-[15px] leading-snug hover:text-vinho-light transition-colors line-clamp-2">
             {produto.nome}
           </h3>
+          {(() => {
+            const cores = produto.variacoes?.find(v => v.tipo === 'Cor')?.opcoes
+            if (!cores || cores.length === 0) return null
+            const visiveis = cores.slice(0, 5)
+            const extras = cores.length - 5
+            return (
+              <div className="flex items-center gap-1 mt-2">
+                {visiveis.map((c, i) => (
+                  <span key={i} title={c.valor}
+                    className="w-3.5 h-3.5 rounded-full border border-white ring-1 ring-gray-200 flex-shrink-0"
+                    style={{ backgroundColor: c.hex || '#ccc' }} />
+                ))}
+                {extras > 0 && (
+                  <span className="text-[10px] text-vinho/40 font-medium">+{extras}</span>
+                )}
+              </div>
+            )
+          })()}
         </Link>
         <div className="flex items-center justify-between mt-3 gap-2">
           <div>

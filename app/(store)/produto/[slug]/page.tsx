@@ -6,11 +6,15 @@ import { useParams } from 'next/navigation'
 import { ShoppingBag, ArrowLeft, Truck, Shield, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { useCart } from '@/lib/CartContext'
 
+type OpcaoVariacao = { valor: string; hex?: string }
+type Variacao = { tipo: string; opcoes: OpcaoVariacao[] }
+
 type Produto = {
   id: string; slug: string; nome: string; descricao: string; categoria: string
   preco: number; preco_antigo?: number; precoAntigo?: number
   imagem: string; imagens: string[]; estoque: string; novo: boolean
   peso?: number; dimensoes?: { comprimento: number; largura: number; altura: number }
+  variacoes?: Variacao[]
 }
 
 export default function ProdutoPage() {
@@ -25,6 +29,7 @@ export default function ProdutoPage() {
   const [loadingFrete, setLoadingFrete] = useState(false)
   const [opcoesFretes, setOpcoesFretes] = useState<any[]>([])
   const [avisoFrete, setAvisoFrete] = useState('')
+  const [variacaoSelecionada, setVariacaoSelecionada] = useState<Record<string, string>>({})
   const { adicionar } = useCart()
 
   useEffect(() => {
@@ -75,6 +80,8 @@ export default function ProdutoPage() {
   )
 
   const imagens = [produto.imagem, ...(produto.imagens || [])].filter(Boolean)
+  const todasSelecionadas = !produto.variacoes?.length ||
+    produto.variacoes.every(v => variacaoSelecionada[v.tipo])
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
@@ -118,7 +125,63 @@ export default function ProdutoPage() {
             )}
           </div>
 
-          <p className="text-vinho/70 leading-relaxed mb-8">{produto.descricao}</p>
+          <p className="text-vinho/70 leading-relaxed mb-6">{produto.descricao}</p>
+
+          {/* ── Seletor de variações ── */}
+          {produto.variacoes && produto.variacoes.length > 0 && (
+            <div className="space-y-5 mb-6">
+              {produto.variacoes.map(v => {
+                const selecionado = variacaoSelecionada[v.tipo]
+                return (
+                  <div key={v.tipo}>
+                    <p className="text-sm font-semibold text-vinho mb-2.5">
+                      {v.tipo}:{' '}
+                      {selecionado
+                        ? <span className="font-normal text-vinho/70">{selecionado}</span>
+                        : <span className="font-normal text-vinho/40 italic">Selecione</span>
+                      }
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {v.tipo === 'Cor'
+                        ? v.opcoes.map(op => (
+                            <button
+                              key={op.valor}
+                              type="button"
+                              title={op.valor}
+                              onClick={() => setVariacaoSelecionada(prev => ({ ...prev, [v.tipo]: op.valor }))}
+                              className={`relative w-9 h-9 rounded-full border-2 transition-all duration-150 ${
+                                selecionado === op.valor
+                                  ? 'border-vinho scale-110 shadow-lg ring-2 ring-vinho/20'
+                                  : 'border-white ring-1 ring-gray-300 hover:ring-vinho hover:scale-105'
+                              }`}
+                              style={{ backgroundColor: op.hex || '#ccc' }}
+                            >
+                              {selecionado === op.valor && (
+                                <span className="absolute inset-0 flex items-center justify-center text-white text-xs font-bold drop-shadow">✓</span>
+                              )}
+                            </button>
+                          ))
+                        : v.opcoes.map(op => (
+                            <button
+                              key={op.valor}
+                              type="button"
+                              onClick={() => setVariacaoSelecionada(prev => ({ ...prev, [v.tipo]: op.valor }))}
+                              className={`px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all duration-150 ${
+                                selecionado === op.valor
+                                  ? 'border-vinho bg-vinho text-creme shadow-sm'
+                                  : 'border-gray-200 text-vinho hover:border-vinho/60'
+                              }`}
+                            >
+                              {op.valor}
+                            </button>
+                          ))
+                      }
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {produto.estoque !== 'indisponivel' ? (
             <div className="space-y-4">
@@ -128,10 +191,25 @@ export default function ProdutoPage() {
                   <span className="px-4 py-3 font-semibold text-vinho min-w-[3rem] text-center">{quantidade}</span>
                   <button onClick={() => setQuantidade(q => q + 1)} className="px-4 py-3 text-vinho hover:bg-creme-dark transition-colors font-medium">+</button>
                 </div>
-                <button onClick={() => adicionar(produto as any, quantidade)} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => {
+                    if (!todasSelecionadas) return
+                    adicionar(
+                      produto as any,
+                      quantidade,
+                      Object.keys(variacaoSelecionada).length ? variacaoSelecionada : undefined
+                    )
+                  }}
+                  disabled={!todasSelecionadas}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <ShoppingBag size={18} /> Adicionar ao carrinho
                 </button>
               </div>
+              {!todasSelecionadas && (
+                <p className="text-xs text-vinho/50 flex items-center gap-1.5">
+                  <span className="text-rosa">↑</span> Selecione todas as opções acima para continuar
+                </p>
+              )}
               {produto.estoque === 'sob-consulta' && (
                 <p className="text-sm text-yellow-600 bg-yellow-50 rounded-xl p-3">Produto sob consulta — entre em contato para confirmar disponibilidade.</p>
               )}

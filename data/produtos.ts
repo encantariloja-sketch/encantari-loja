@@ -1,9 +1,14 @@
+export type OpcaoVariacao = { valor: string; hex?: string }
+export type Variacao = { tipo: string; opcoes: OpcaoVariacao[] }
+export type VariacaoSelecionada = Record<string, string>
+
 export type Produto = {
   id: string
   slug: string
   nome: string
   descricao: string
   categoria: string
+  subcategoria?: string
   preco: number
   precoAntigo?: number
   sku?: string
@@ -16,6 +21,7 @@ export type Produto = {
   peso?: number
   dimensoes?: { comprimento: number; largura: number; altura: number }
   tags?: string[]
+  variacoes?: Variacao[]
 }
 
 export const produtos: Produto[] = [
