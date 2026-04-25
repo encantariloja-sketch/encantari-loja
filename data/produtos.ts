@@ -1,4 +1,4 @@
-export type OpcaoVariacao = { valor: string; hex?: string }
+export type OpcaoVariacao = { valor: string; hex?: string; imagem?: string }
 export type Variacao = { tipo: string; opcoes: OpcaoVariacao[] }
 export type VariacaoSelecionada = Record<string, string>
 

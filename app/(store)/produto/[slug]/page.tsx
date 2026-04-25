@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import { ShoppingBag, ArrowLeft, Truck, Shield, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { useCart } from '@/lib/CartContext'
 
-type OpcaoVariacao = { valor: string; hex?: string }
+type OpcaoVariacao = { valor: string; hex?: string; imagem?: string }
 type Variacao = { tipo: string; opcoes: OpcaoVariacao[] }
 
 type Produto = {
@@ -39,7 +39,6 @@ export default function ProdutoPage() {
         const p = d.produtos?.[0]
         if (!p) { setNaoEncontrado(true); return }
         setProduto({ ...p, precoAntigo: p.precoAntigo ?? p.preco_antigo })
-        // pré-seleciona a primeira opção de cada variação
         if (p.variacoes?.length) {
           const selecao: Record<string, string> = {}
           p.variacoes.forEach((v: any) => {
@@ -90,6 +89,21 @@ export default function ProdutoPage() {
   const todasSelecionadas = !produto.variacoes?.length ||
     produto.variacoes.every(v => variacaoSelecionada[v.tipo])
 
+  // imagem da variação selecionada (se houver)
+  const imagemVariacao = produto.variacoes?.reduce<string | null>((acc, v) => {
+    if (acc) return acc
+    const op = v.opcoes?.find(o => o.valor === variacaoSelecionada[v.tipo])
+    return op?.imagem || null
+  }, null) ?? null
+
+  const imagemExibida = imagemVariacao || imagens[imagemAtiva] || '/images/produto-placeholder.jpg'
+
+  function selecionarVariacao(tipo: string, valor: string) {
+    setVariacaoSelecionada(prev => ({ ...prev, [tipo]: valor }))
+    // se a opção tem imagem própria, limpa imagemAtiva para ela ter prioridade
+    setImagemAtiva(0)
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <Link href="/produtos" className="inline-flex items-center gap-2 text-vinho/60 hover:text-vinho mb-8 text-sm">
@@ -97,30 +111,62 @@ export default function ProdutoPage() {
       </Link>
 
       <div className="grid md:grid-cols-2 gap-10 lg:gap-16">
-        {/* Galeria */}
+        {/* ── Galeria ── */}
         <div>
-          <div className="aspect-square relative rounded-2xl overflow-hidden bg-creme-dark mb-3">
+          <div className="aspect-square relative rounded-2xl overflow-hidden bg-creme-dark mb-3 transition-all duration-300">
             <Image
-              src={imagens[imagemAtiva] || '/images/produto-placeholder.jpg'}
+              key={imagemExibida}
+              src={imagemExibida}
               alt={produto.nome}
-              fill className="object-cover"
+              fill
+              className="object-cover"
               sizes="(max-width: 768px) 100vw, 50vw"
             />
             {produto.novo && <span className="badge-novo">Novo</span>}
+            {imagemVariacao && (
+              <span className="absolute bottom-3 left-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
+                {Object.values(variacaoSelecionada).join(' · ')}
+              </span>
+            )}
           </div>
-          {imagens.length > 1 && (
-            <div className="flex gap-2">
+
+          {/* Miniaturas do produto */}
+          {imagens.length > 1 && !imagemVariacao && (
+            <div className="flex gap-2 flex-wrap">
               {imagens.map((img, i) => (
                 <button key={i} onClick={() => setImagemAtiva(i)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${imagemAtiva === i ? 'border-vinho' : 'border-transparent'}`}>
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors flex-shrink-0 ${imagemAtiva === i ? 'border-vinho' : 'border-transparent hover:border-gray-300'}`}>
                   <Image src={img} alt="" width={64} height={64} className="object-cover w-full h-full" />
                 </button>
               ))}
             </div>
           )}
+
+          {/* Miniaturas das variações quando há imagem de variação */}
+          {imagemVariacao && produto.variacoes?.some(v => v.opcoes.some(o => o.imagem)) && (
+            <div className="flex gap-2 flex-wrap">
+              {produto.variacoes.flatMap(v =>
+                v.opcoes.filter(o => o.imagem).map(o => (
+                  <button key={`${v.tipo}-${o.valor}`}
+                    onClick={() => selecionarVariacao(v.tipo, o.valor)}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors flex-shrink-0 ${variacaoSelecionada[v.tipo] === o.valor ? 'border-vinho' : 'border-transparent hover:border-gray-300'}`}
+                    title={o.valor}>
+                    <Image src={o.imagem!} alt={o.valor} width={64} height={64} className="object-cover w-full h-full" />
+                  </button>
+                ))
+              )}
+              {imagens.length > 0 && (
+                <button onClick={() => { setImagemAtiva(0); setVariacaoSelecionada(prev => ({ ...prev })) }}
+                  className="w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-gray-300 transition-colors flex-shrink-0"
+                  title="Fotos do produto">
+                  <Image src={imagens[0]} alt="" width={64} height={64} className="object-cover w-full h-full opacity-60" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Info */}
+        {/* ── Info ── */}
         <div>
           <span className="text-rosa text-sm font-medium capitalize">{(produto.categoria || '').replace(/-/g, ' ')}</span>
           <h1 className="heading text-3xl mt-2 mb-4">{produto.nome}</h1>
@@ -139,23 +185,62 @@ export default function ProdutoPage() {
             <div className="space-y-5 mb-6">
               {produto.variacoes.map(v => {
                 const selecionado = variacaoSelecionada[v.tipo]
+                const temImagens = v.opcoes.some(op => op.imagem)
+                const isCor = v.tipo.toLowerCase() === 'cor'
+
                 return (
                   <div key={v.tipo}>
                     <p className="text-sm font-semibold text-vinho mb-2.5">
                       {v.tipo}:{' '}
-                      {selecionado
-                        ? <span className="font-normal text-vinho/70">{selecionado}</span>
-                        : <span className="font-normal text-vinho/40 italic">Selecione</span>
-                      }
+                      <span className={`font-normal ${selecionado ? 'text-vinho/70' : 'text-vinho/40 italic'}`}>
+                        {selecionado || 'Selecione'}
+                      </span>
                     </p>
+
                     <div className="flex flex-wrap gap-2">
-                      {v.tipo === 'Cor'
+                      {temImagens
+                        // ── opções com imagem: card quadrado ──
                         ? v.opcoes.map(op => (
                             <button
                               key={op.valor}
                               type="button"
                               title={op.valor}
-                              onClick={() => setVariacaoSelecionada(prev => ({ ...prev, [v.tipo]: op.valor }))}
+                              onClick={() => selecionarVariacao(v.tipo, op.valor)}
+                              className={`relative flex flex-col items-center gap-1 transition-all duration-150 ${
+                                selecionado === op.valor
+                                  ? 'scale-105'
+                                  : 'opacity-80 hover:opacity-100'
+                              }`}
+                            >
+                              <div className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${
+                                selecionado === op.valor
+                                  ? 'border-vinho shadow-md ring-2 ring-vinho/20'
+                                  : 'border-gray-200 hover:border-vinho/50'
+                              }`}>
+                                {op.imagem ? (
+                                  <Image src={op.imagem} alt={op.valor} width={64} height={64} className="object-cover w-full h-full" />
+                                ) : (
+                                  <div className="w-full h-full" style={{ backgroundColor: op.hex || '#eee' }} />
+                                )}
+                              </div>
+                              <span className={`text-[10px] font-medium leading-none ${selecionado === op.valor ? 'text-vinho' : 'text-vinho/50'}`}>
+                                {op.valor}
+                              </span>
+                              {selecionado === op.valor && (
+                                <span className="absolute top-1 right-1 w-4 h-4 bg-vinho rounded-full flex items-center justify-center">
+                                  <span className="text-white text-[8px] font-bold">✓</span>
+                                </span>
+                              )}
+                            </button>
+                          ))
+                        : isCor
+                        // ── cor sem imagem: bolinhas ──
+                        ? v.opcoes.map(op => (
+                            <button
+                              key={op.valor}
+                              type="button"
+                              title={op.valor}
+                              onClick={() => selecionarVariacao(v.tipo, op.valor)}
                               className={`relative w-9 h-9 rounded-full border-2 transition-all duration-150 ${
                                 selecionado === op.valor
                                   ? 'border-vinho scale-110 shadow-lg ring-2 ring-vinho/20'
@@ -168,11 +253,12 @@ export default function ProdutoPage() {
                               )}
                             </button>
                           ))
+                        // ── outros tipos: pill buttons ──
                         : v.opcoes.map(op => (
                             <button
                               key={op.valor}
                               type="button"
-                              onClick={() => setVariacaoSelecionada(prev => ({ ...prev, [v.tipo]: op.valor }))}
+                              onClick={() => selecionarVariacao(v.tipo, op.valor)}
                               className={`px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all duration-150 ${
                                 selecionado === op.valor
                                   ? 'border-vinho bg-vinho text-creme shadow-sm'

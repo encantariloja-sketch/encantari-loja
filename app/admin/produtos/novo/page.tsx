@@ -5,13 +5,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft, Camera, Upload, X, Plus, Loader2,
-  RotateCcw, Check, Palette,
+  RotateCcw, Check, Palette, ImagePlus,
 } from 'lucide-react'
 
 type Imagem = { url: string; arquivo?: File }
 type Subcat = { id: string; nome: string }
 type Categoria = { id: string; nome: string; icone: string; subcategorias?: Subcat[] }
-type OpcaoForm = { valor: string; hex?: string }
+type OpcaoForm = { valor: string; hex?: string; imagem?: string }
 type VariacaoForm = { tipo: string; opcoes: OpcaoForm[] }
 
 export default function NovoProdutoPage() {
@@ -90,6 +90,19 @@ export default function NovoProdutoPage() {
     setVariacoes(v => v.map((vari, i) =>
       i === vIdx ? { ...vari, opcoes: vari.opcoes.map((op, j) => j === oIdx ? { ...op, hex } : op) } : vari
     ))
+  }
+  function setOpcaoImagem(vIdx: number, oIdx: number, imagem: string) {
+    setVariacoes(v => v.map((vari, i) =>
+      i === vIdx ? { ...vari, opcoes: vari.opcoes.map((op, j) => j === oIdx ? { ...op, imagem } : op) } : vari
+    ))
+  }
+  async function uploadOpcaoImagem(vIdx: number, oIdx: number, file: File) {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('prefix', 'variacoes')
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+    const data = await res.json()
+    if (data.url) setOpcaoImagem(vIdx, oIdx, data.url)
   }
 
   // === CÂMERA ===
@@ -195,6 +208,7 @@ export default function NovoProdutoPage() {
           opcoes: v.opcoes.filter(o => o.valor.trim()).map(o => ({
             valor: o.valor.trim(),
             ...(o.hex ? { hex: o.hex } : {}),
+            ...(o.imagem ? { imagem: o.imagem } : {}),
           })),
         }))
         .filter(v => v.opcoes.length > 0)
@@ -457,31 +471,40 @@ export default function NovoProdutoPage() {
                     <div key={oIdx} className="flex items-center gap-2">
                       {isCor && (
                         <div className="relative w-8 h-8 flex-shrink-0">
-                          <input
-                            type="color"
-                            value={opcao.hex || '#cccccc'}
+                          <input type="color" value={opcao.hex || '#cccccc'}
                             onChange={e => setOpcaoHex(vIdx, oIdx, e.target.value)}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
-                            title="Clique para escolher a cor"
-                          />
-                          <div
-                            className="w-8 h-8 rounded-full border-2 border-white shadow ring-1 ring-gray-200 cursor-pointer"
-                            style={{ backgroundColor: opcao.hex || '#cccccc' }}
-                          />
+                            title="Clique para escolher a cor" />
+                          <div className="w-8 h-8 rounded-full border-2 border-white shadow ring-1 ring-gray-200 cursor-pointer"
+                            style={{ backgroundColor: opcao.hex || '#cccccc' }} />
                         </div>
                       )}
-                      <input
-                        type="text"
-                        value={opcao.valor}
+                      <input type="text" value={opcao.valor}
                         onChange={e => setOpcaoValor(vIdx, oIdx, e.target.value)}
-                        placeholder={isCor ? 'Nome da cor (ex: Vermelho Rubi)' : 'Valor da opção (ex: P, M, G)'}
-                        className="input flex-1 text-sm bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removerOpcao(vIdx, oIdx)}
-                        className="p-1.5 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
-                      >
+                        placeholder={isCor ? 'Nome da cor (ex: Vermelho Rubi)' : 'Valor (ex: P, M, G)'}
+                        className="input flex-1 text-sm bg-white" />
+                      {/* slot de imagem da opção */}
+                      <label htmlFor={`ni-${vIdx}-${oIdx}`} className="flex-shrink-0 cursor-pointer relative group">
+                        {opcao.imagem ? (
+                          <div className="relative w-10 h-10">
+                            <img src={opcao.imagem} alt={opcao.valor} className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+                            <button type="button"
+                              onClick={e => { e.preventDefault(); setOpcaoImagem(vIdx, oIdx, '') }}
+                              className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white shadow">
+                              <X size={8} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 group-hover:border-rosa group-hover:text-rosa transition-colors"
+                            title="Adicionar foto desta variação">
+                            <ImagePlus size={14} />
+                          </div>
+                        )}
+                      </label>
+                      <input type="file" id={`ni-${vIdx}-${oIdx}`} accept="image/*" className="hidden"
+                        onChange={e => e.target.files?.[0] && uploadOpcaoImagem(vIdx, oIdx, e.target.files[0])} />
+                      <button type="button" onClick={() => removerOpcao(vIdx, oIdx)}
+                        className="p-1.5 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
                         <X size={14} />
                       </button>
                     </div>
