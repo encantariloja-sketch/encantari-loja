@@ -60,6 +60,9 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       const txt = await res.text()
+      if (res.status === 401) {
+        throw new Error('Token inválido. Gere um novo token em melhorenvio.com.br → Gerenciar → Tokens de acesso e atualize MELHOR_ENVIO_TOKEN no Vercel. Certifique-se também de que MELHOR_ENVIO_SANDBOX corresponde ao ambiente do token (true = sandbox, false = produção).')
+      }
       throw new Error(`ME API ${res.status}: ${txt.slice(0, 200)}`)
     }
 

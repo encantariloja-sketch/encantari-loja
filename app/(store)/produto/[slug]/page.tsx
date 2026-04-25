@@ -38,8 +38,15 @@ export default function ProdutoPage() {
       .then(d => {
         const p = d.produtos?.[0]
         if (!p) { setNaoEncontrado(true); return }
-        // normaliza preco_antigo → precoAntigo
         setProduto({ ...p, precoAntigo: p.precoAntigo ?? p.preco_antigo })
+        // pré-seleciona a primeira opção de cada variação
+        if (p.variacoes?.length) {
+          const selecao: Record<string, string> = {}
+          p.variacoes.forEach((v: any) => {
+            if (v.opcoes?.length) selecao[v.tipo] = v.opcoes[0].valor
+          })
+          setVariacaoSelecionada(selecao)
+        }
       })
       .catch(() => setNaoEncontrado(true))
       .finally(() => setCarregando(false))

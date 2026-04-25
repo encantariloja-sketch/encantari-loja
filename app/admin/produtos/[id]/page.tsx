@@ -5,7 +5,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Check, Trash2, Upload, X, Plus, Palette } from 'lucide-react'
 
-type Categoria = { id: string; nome: string; icone: string }
+type Subcat = { id: string; nome: string }
+type Categoria = { id: string; nome: string; icone: string; subcategorias?: Subcat[] }
 type OpcaoForm = { valor: string; hex?: string }
 type VariacaoForm = { tipo: string; opcoes: OpcaoForm[] }
 
@@ -290,18 +291,26 @@ export default function EditarProdutoPage() {
               <input className="input" value={form.sku} onChange={e => atualizar('sku', e.target.value)} placeholder="ENC-001" />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Subcategoria <span className="font-normal text-gray-400">(opcional)</span>
-            </label>
-            <input
-              className="input"
-              value={form.subcategoria}
-              onChange={e => atualizar('subcategoria', e.target.value)}
-              placeholder="Ex: porcelana, caneca-grande, kit-presente..."
-            />
-            <p className="text-xs text-gray-400 mt-1">Produtos sem subcategoria aparecem na raiz da categoria.</p>
-          </div>
+          {(() => {
+            const subcats = categorias.find(c => c.id === form.categoria)?.subcategorias || []
+            return (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subcategoria <span className="font-normal text-gray-400">(opcional)</span>
+                </label>
+                {subcats.length > 0 ? (
+                  <select className="input" value={form.subcategoria} onChange={e => atualizar('subcategoria', e.target.value)}>
+                    <option value="">Nenhuma — raiz da categoria</option>
+                    {subcats.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                  </select>
+                ) : (
+                  <div className="input bg-gray-50 text-gray-400 text-sm flex items-center">
+                    Nenhuma subcategoria cadastrada — adicione em Categorias
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
 
         {/* PREÇOS */}

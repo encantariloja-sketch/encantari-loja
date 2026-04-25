@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Check, Loader2, ChevronUp, ChevronDown, Edit2, X, ImagePlus } from 'lucide-react'
 
-type Categoria = { id: string; nome: string; icone: string; cor: string; ordem: number; imagem?: string }
+type Subcat = { id: string; nome: string }
+type Categoria = { id: string; nome: string; icone: string; cor: string; ordem: number; imagem?: string; subcategorias?: Subcat[] }
 
 const ICONES_SUGERIDOS = ['☕','🫖','🏺','🌸','🪴','📓','🐿️','🎁','🕯️','🧁','🍵','🎨','📚','🌿','🏡','✨','💐','🧸','🎀','🖼️','🍫','🪞','🧶','🌙','🎭']
 
@@ -20,6 +21,12 @@ async function uploadImagem(file: File): Promise<string | null> {
   return url || null
 }
 
+function gerarSlug(nome: string) {
+  return nome.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+}
+
 export default function AdminCategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -28,6 +35,7 @@ export default function AdminCategoriasPage() {
   const [editando, setEditando] = useState<Categoria | null>(null)
   const [uploadandoNova, setUploadandoNova] = useState(false)
   const [uploadandoEdit, setUploadandoEdit] = useState(false)
+  const [novaSubcat, setNovaSubcat] = useState('')
 
   const [form, setForm] = useState({ nome: '', icone: '✨', cor: '#EF9493', imagem: '' })
 
@@ -76,6 +84,7 @@ export default function AdminCategoriasPage() {
       icone: form.icone,
       cor: form.cor,
       ordem: novaOrdem,
+      subcategorias: [],
       ...(form.imagem ? { imagem: form.imagem } : {}),
     }
     try {
@@ -102,6 +111,7 @@ export default function AdminCategoriasPage() {
       })
       setCategorias(prev => prev.map(c => c.id === editando.id ? editando : c))
       setEditando(null)
+      setNovaSubcat('')
     } catch {}
     setSalvando(false)
   }
@@ -146,6 +156,20 @@ export default function AdminCategoriasPage() {
         body: JSON.stringify({ id: cat.id, ordem: cat.ordem }),
       })
     }
+  }
+
+  function adicionarSubcat() {
+    const nome = novaSubcat.trim()
+    if (!nome || !editando) return
+    const id = gerarSlug(nome)
+    const jaExiste = editando.subcategorias?.some(s => s.id === id)
+    if (jaExiste) return
+    setEditando(ed => ed ? { ...ed, subcategorias: [...(ed.subcategorias || []), { id, nome }] } : ed)
+    setNovaSubcat('')
+  }
+
+  function removerSubcat(id: string) {
+    setEditando(ed => ed ? { ...ed, subcategorias: (ed.subcategorias || []).filter(s => s.id !== id) } : ed)
   }
 
   if (carregando) return (
@@ -201,102 +225,63 @@ export default function AdminCategoriasPage() {
             )}
           </div>
 
-          {/* Foto de capa */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-2">Foto de capa <span className="text-gray-400 font-normal">(opcional — substitui o ícone)</span></label>
-            <input
-              ref={novaImgRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => e.target.files?.[0] && uploadNovaImagem(e.target.files[0])}
-            />
+            <label className="block text-xs font-medium text-gray-500 mb-2">Foto de capa <span className="text-gray-400 font-normal">(opcional)</span></label>
+            <input ref={novaImgRef} type="file" accept="image/*" className="hidden"
+              onChange={e => e.target.files?.[0] && uploadNovaImagem(e.target.files[0])} />
             {form.imagem ? (
               <div className="relative inline-block">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={form.imagem} alt="Capa" className="w-20 h-20 rounded-2xl object-cover border border-gray-200" />
-                <button
-                  onClick={() => setForm(f => ({ ...f, imagem: '' }))}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white"
-                >
+                <button onClick={() => setForm(f => ({ ...f, imagem: '' }))}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">
                   <X size={12} />
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => novaImgRef.current?.click()}
-                disabled={uploadandoNova}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-sm hover:border-rosa hover:text-rosa transition-all disabled:opacity-50"
-              >
+              <button onClick={() => novaImgRef.current?.click()} disabled={uploadandoNova}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-sm hover:border-rosa hover:text-rosa transition-all disabled:opacity-50">
                 {uploadandoNova ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
                 {uploadandoNova ? 'Enviando...' : 'Adicionar foto de capa'}
               </button>
             )}
           </div>
 
-          {/* Ícone */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-2">Ícone <span className="text-2xl ml-1">{form.icone}</span></label>
             <div className="flex flex-wrap gap-2">
               {ICONES_SUGERIDOS.map(ico => (
-                <button
-                  key={ico}
-                  onClick={() => setForm(f => ({ ...f, icone: ico }))}
-                  className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 transition-all ${form.icone === ico ? 'border-vinho bg-vinho/5' : 'border-gray-100'}`}
-                >
+                <button key={ico} onClick={() => setForm(f => ({ ...f, icone: ico }))}
+                  className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 transition-all ${form.icone === ico ? 'border-vinho bg-vinho/5' : 'border-gray-100'}`}>
                   {ico}
                 </button>
               ))}
-              <input
-                type="text"
-                value={form.icone}
-                onChange={e => setForm(f => ({ ...f, icone: e.target.value }))}
-                placeholder="outro"
-                className="w-16 border border-gray-200 rounded-xl px-2 py-1 text-center text-lg"
-                maxLength={4}
-              />
+              <input type="text" value={form.icone} onChange={e => setForm(f => ({ ...f, icone: e.target.value }))}
+                placeholder="outro" className="w-16 border border-gray-200 rounded-xl px-2 py-1 text-center text-lg" maxLength={4} />
             </div>
           </div>
 
-          {/* Cor */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-2">Cor de fundo do card</label>
             <div className="flex gap-2 flex-wrap items-center">
               {CORES_SUGERIDAS.map(cor => (
-                <button
-                  key={cor}
-                  onClick={() => setForm(f => ({ ...f, cor }))}
+                <button key={cor} onClick={() => setForm(f => ({ ...f, cor }))}
                   className={`w-8 h-8 rounded-full border-2 transition-all ${form.cor === cor ? 'border-gray-900 scale-110' : 'border-transparent'}`}
-                  style={{ backgroundColor: cor }}
-                />
+                  style={{ backgroundColor: cor }} />
               ))}
-              <input
-                type="color"
-                value={form.cor}
-                onChange={e => setForm(f => ({ ...f, cor: e.target.value }))}
-                className="w-8 h-8 rounded-full cursor-pointer border-0"
-              />
+              <input type="color" value={form.cor} onChange={e => setForm(f => ({ ...f, cor: e.target.value }))}
+                className="w-8 h-8 rounded-full cursor-pointer border-0" />
             </div>
-            {/* Preview */}
             <div className="mt-3 flex items-center gap-3 p-3 rounded-xl border border-gray-100">
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl overflow-hidden"
-                style={form.imagem ? {} : { backgroundColor: form.cor + '33' }}
-              >
-                {form.imagem
-                  ? <img src={form.imagem} alt="" className="w-full h-full object-cover" />
-                  : form.icone
-                }
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl overflow-hidden"
+                style={form.imagem ? {} : { backgroundColor: form.cor + '33' }}>
+                {form.imagem ? <img src={form.imagem} alt="" className="w-full h-full object-cover" /> : form.icone}
               </div>
               <span className="font-medium text-sm text-gray-900">{form.nome || 'Nome da categoria'}</span>
             </div>
           </div>
 
-          <button
-            onClick={salvarNova}
-            disabled={salvando || !form.nome.trim()}
-            className="w-full py-3.5 bg-vinho text-creme rounded-full font-semibold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-          >
+          <button onClick={salvarNova} disabled={salvando || !form.nome.trim()}
+            className="w-full py-3.5 bg-vinho text-creme rounded-full font-semibold text-sm disabled:opacity-50 flex items-center justify-center gap-2">
             {salvando ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
             Criar categoria
           </button>
@@ -307,49 +292,36 @@ export default function AdminCategoriasPage() {
       <div className="space-y-2">
         {categorias.map((cat, idx) => (
           <div key={cat.id}>
-            {/* Modo edição */}
             {editando?.id === cat.id ? (
-              <div className="bg-white rounded-2xl border-2 border-vinho/30 p-4 space-y-3">
+              <div className="bg-white rounded-2xl border-2 border-vinho/30 p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm text-gray-900">Editar — {cat.nome}</p>
-                  <button onClick={() => setEditando(null)}><X size={18} className="text-gray-400" /></button>
+                  <button onClick={() => { setEditando(null); setNovaSubcat('') }}><X size={18} className="text-gray-400" /></button>
                 </div>
 
-                <input
-                  value={editando.nome}
+                <input value={editando.nome}
                   onChange={e => setEditando(ed => ed ? { ...ed, nome: e.target.value } : ed)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rosa"
-                />
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rosa" />
 
-                {/* Foto de capa (edit) */}
+                {/* Foto de capa */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">Foto de capa</label>
-                  <input
-                    ref={editImgRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => e.target.files?.[0] && uploadEditImagem(e.target.files[0])}
-                  />
+                  <input ref={editImgRef} type="file" accept="image/*" className="hidden"
+                    onChange={e => e.target.files?.[0] && uploadEditImagem(e.target.files[0])} />
                   {editando.imagem ? (
                     <div className="flex items-center gap-3">
                       <div className="relative inline-block">
                         <img src={editando.imagem} alt="Capa" className="w-16 h-16 rounded-xl object-cover border border-gray-200" />
-                        <button
-                          onClick={() => setEditando(ed => ed ? { ...ed, imagem: '' } : ed)}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white"
-                        >
+                        <button onClick={() => setEditando(ed => ed ? { ...ed, imagem: '' } : ed)}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white">
                           <X size={10} />
                         </button>
                       </div>
                       <button onClick={() => editImgRef.current?.click()} className="text-xs text-rosa underline">Trocar foto</button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => editImgRef.current?.click()}
-                      disabled={uploadandoEdit}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-sm hover:border-rosa hover:text-rosa transition-all disabled:opacity-50"
-                    >
+                    <button onClick={() => editImgRef.current?.click()} disabled={uploadandoEdit}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-sm hover:border-rosa hover:text-rosa transition-all disabled:opacity-50">
                       {uploadandoEdit ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
                       {uploadandoEdit ? 'Enviando...' : 'Adicionar foto'}
                     </button>
@@ -357,47 +329,98 @@ export default function AdminCategoriasPage() {
                 </div>
 
                 {/* Ícones */}
-                <div className="flex flex-wrap gap-2">
-                  {ICONES_SUGERIDOS.map(ico => (
-                    <button key={ico} onClick={() => setEditando(ed => ed ? { ...ed, icone: ico } : ed)}
-                      className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center border-2 ${editando.icone === ico ? 'border-vinho' : 'border-gray-100'}`}>
-                      {ico}
-                    </button>
-                  ))}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Ícone <span className="text-2xl ml-1">{editando.icone}</span></label>
+                  <div className="flex flex-wrap gap-2">
+                    {ICONES_SUGERIDOS.map(ico => (
+                      <button key={ico} onClick={() => setEditando(ed => ed ? { ...ed, icone: ico } : ed)}
+                        className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center border-2 ${editando.icone === ico ? 'border-vinho' : 'border-gray-100'}`}>
+                        {ico}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Cores */}
-                <div className="flex gap-2 flex-wrap items-center">
-                  {CORES_SUGERIDAS.map(cor => (
-                    <button key={cor} onClick={() => setEditando(ed => ed ? { ...ed, cor } : ed)}
-                      className={`w-7 h-7 rounded-full border-2 ${editando.cor === cor ? 'border-gray-900 scale-110' : 'border-transparent'}`}
-                      style={{ backgroundColor: cor }} />
-                  ))}
-                  <input type="color" value={editando.cor} onChange={e => setEditando(ed => ed ? { ...ed, cor: e.target.value } : ed)} className="w-7 h-7 rounded-full cursor-pointer border-0" />
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Cor</label>
+                  <div className="flex gap-2 flex-wrap items-center">
+                    {CORES_SUGERIDAS.map(cor => (
+                      <button key={cor} onClick={() => setEditando(ed => ed ? { ...ed, cor } : ed)}
+                        className={`w-7 h-7 rounded-full border-2 ${editando.cor === cor ? 'border-gray-900 scale-110' : 'border-transparent'}`}
+                        style={{ backgroundColor: cor }} />
+                    ))}
+                    <input type="color" value={editando.cor}
+                      onChange={e => setEditando(ed => ed ? { ...ed, cor: e.target.value } : ed)}
+                      className="w-7 h-7 rounded-full cursor-pointer border-0" />
+                  </div>
                 </div>
 
-                <button onClick={salvarEdicao} disabled={salvando} className="w-full py-3 bg-vinho text-creme rounded-full font-semibold text-sm flex items-center justify-center gap-2">
+                {/* ── SUBCATEGORIAS ── */}
+                <div className="border-t border-gray-100 pt-4">
+                  <label className="block text-xs font-semibold text-gray-700 mb-3">
+                    Subcategorias
+                    <span className="font-normal text-gray-400 ml-1">— agrupam produtos dentro desta categoria</span>
+                  </label>
+
+                  {(editando.subcategorias || []).length === 0 ? (
+                    <p className="text-xs text-gray-400 mb-3">Nenhuma subcategoria ainda.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {(editando.subcategorias || []).map(s => (
+                        <span key={s.id}
+                          className="flex items-center gap-1.5 bg-creme text-vinho text-xs font-medium px-3 py-1.5 rounded-full border border-vinho/15">
+                          {s.nome}
+                          <button type="button" onClick={() => removerSubcat(s.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors">
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={novaSubcat}
+                      onChange={e => setNovaSubcat(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), adicionarSubcat())}
+                      placeholder="Ex: Porcelana, Kit presente, Pequeno..."
+                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-vinho"
+                    />
+                    <button type="button" onClick={adicionarSubcat}
+                      disabled={!novaSubcat.trim()}
+                      className="px-3 py-2 bg-vinho/10 text-vinho rounded-xl text-sm font-medium hover:bg-vinho/20 transition-colors disabled:opacity-40">
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1.5">Pressione Enter ou clique + para adicionar</p>
+                </div>
+
+                <button onClick={salvarEdicao} disabled={salvando}
+                  className="w-full py-3 bg-vinho text-creme rounded-full font-semibold text-sm flex items-center justify-center gap-2">
                   {salvando ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                   Salvar
                 </button>
               </div>
             ) : (
-              /* Card normal */
               <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 p-3.5">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden"
-                  style={cat.imagem ? {} : { backgroundColor: (cat.cor || '#EF9493') + '33' }}
-                >
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden"
+                  style={cat.imagem ? {} : { backgroundColor: (cat.cor || '#EF9493') + '33' }}>
                   {cat.imagem
                     ? <img src={cat.imagem} alt={cat.nome} className="w-full h-full object-cover" />
-                    : cat.icone
-                  }
+                    : cat.icone}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 text-sm">{cat.nome}</p>
                   <p className="text-gray-400 text-xs font-mono">{cat.id}</p>
+                  {(cat.subcategorias || []).length > 0 && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {cat.subcategorias!.map(s => s.nome).join(' · ')}
+                    </p>
+                  )}
                 </div>
-                {/* Ações */}
                 <div className="flex items-center gap-1">
                   <div className="flex flex-col gap-0.5">
                     <button onClick={() => mover(cat.id, 'up')} disabled={idx === 0} className="p-1 text-gray-300 hover:text-gray-600 disabled:opacity-20">
@@ -407,7 +430,7 @@ export default function AdminCategoriasPage() {
                       <ChevronDown size={14} />
                     </button>
                   </div>
-                  <button onClick={() => setEditando(cat)} className="p-2.5 text-gray-400 hover:text-vinho transition-colors">
+                  <button onClick={() => { setEditando(cat); setNovaSubcat('') }} className="p-2.5 text-gray-400 hover:text-vinho transition-colors">
                     <Edit2 size={16} />
                   </button>
                   <button onClick={() => excluir(cat.id)} className="p-2.5 text-gray-400 hover:text-red-500 transition-colors">
