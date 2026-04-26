@@ -73,10 +73,10 @@ export async function POST(req: Request) {
     }
 
     const opcoes = data
-      .filter((s: any) => !s.error && s.price)
+      .filter((s: any) => !s.error && s.price && s.company?.id === 1) // apenas Correios
       .map((s: any) => ({
         id: String(s.id),
-        nome: `${s.company?.name ?? 'Transportadora'} — ${s.name}`,
+        nome: `${s.company?.name ?? 'Correios'} — ${s.name}`,
         preco: parseFloat(s.price),
         prazo: s.delivery_time ? `${s.delivery_time} dias úteis` : '',
       }))
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       .slice(0, 5)
 
     if (opcoes.length === 0) {
-      return NextResponse.json({ opcoes: [], aviso: 'Nenhuma opção de frete disponível para este CEP.' })
+      return NextResponse.json({ opcoes: [], aviso: 'Nenhuma opção dos Correios disponível para este CEP.' })
     }
 
     return NextResponse.json({ opcoes })
