@@ -489,8 +489,8 @@ export default function EditarProdutoPage() {
                   <Plus size={13} />
                   {isCor ? '+ Adicionar cor' : '+ Adicionar opção'}
                 </button>
-                </div>{/* fecha p-4 space-y-2 */}
-              </div>{/* fecha bloco variação */}
+                </div>
+              </div>
             )
           })}
         </div>
