@@ -180,33 +180,39 @@ export default function EditarProdutoPage() {
         }))
         .filter(v => v.opcoes.length > 0)
 
+      const payload = {
+        id,
+        slug,
+        nome: form.nome,
+        descricao: form.descricao,
+        categoria: form.categoria,
+        subcategoria: form.subcategoria.trim() || null,
+        preco: parseFloat(form.preco),
+        preco_antigo: form.precoAntigo ? parseFloat(form.precoAntigo) : null,
+        sku: form.sku || null,
+        imagem: form.imagem || null,
+        imagens: form.imagens,
+        estoque: form.estoque,
+        destaque: form.destaque,
+        novo: form.novo,
+        peso: form.peso ? parseFloat(form.peso) : null,
+        comprimento: form.comprimento ? parseFloat(form.comprimento) : null,
+        largura: form.largura ? parseFloat(form.largura) : null,
+        altura: form.altura ? parseFloat(form.altura) : null,
+        variacoes: variacoesLimpas.length > 0 ? variacoesLimpas : null,
+      }
       const res = await fetch('/api/admin/produtos', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          slug,
-          nome: form.nome,
-          descricao: form.descricao,
-          categoria: form.categoria,
-          subcategoria: form.subcategoria.trim() || null,
-          preco: parseFloat(form.preco),
-          preco_antigo: form.precoAntigo ? parseFloat(form.precoAntigo) : null,
-          sku: form.sku || null,
-          imagem: form.imagem || null,
-          imagens: form.imagens,
-          estoque: form.estoque,
-          destaque: form.destaque,
-          novo: form.novo,
-          peso: form.peso ? parseFloat(form.peso) : null,
-          comprimento: form.comprimento ? parseFloat(form.comprimento) : null,
-          largura: form.largura ? parseFloat(form.largura) : null,
-          altura: form.altura ? parseFloat(form.altura) : null,
-          variacoes: variacoesLimpas.length > 0 ? variacoesLimpas : null,
-        }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) { alert('Erro ao salvar:\n' + (data.erro || res.status)); return }
+      // Verificar se as variações foram realmente salvas
+      if (variacoesLimpas.length > 0 && !data.produto?.variacoes) {
+        alert('Atenção: as variações foram enviadas mas o banco retornou vazio.\nVerifique se a coluna "variacoes" existe na tabela produtos no Supabase (tipo JSONB).')
+        return
+      }
       router.push('/admin/produtos')
     } catch (err: any) {
       alert('Erro: ' + err.message)

@@ -20,6 +20,11 @@ create table if not exists categorias (
 -- Colunas adicionadas posteriormente (seguro re-executar)
 alter table categorias add column if not exists cor text;
 alter table categorias add column if not exists imagem text;
+alter table categorias add column if not exists subcategorias jsonb default '[]';
+
+alter table produtos add column if not exists subcategoria text;
+alter table produtos add column if not exists variacoes jsonb;
+alter table produtos add column if not exists mais_vendido boolean default false;
 
 create table if not exists produtos (
   id uuid primary key default gen_random_uuid(),

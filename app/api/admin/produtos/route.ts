@@ -46,9 +46,15 @@ export async function PUT(req: Request) {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ ok: true, aviso: 'Supabase não configurado' })
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
-    const { error } = await db.from('produtos').update({ ...updates, atualizado_em: new Date().toISOString() }).eq('id', id)
+    const { data, error } = await db
+      .from('produtos')
+      .update(updates)
+      .eq('id', id)
+      .select('id, variacoes, subcategoria')
+      .single()
     if (error) throw error
-    return NextResponse.json({ ok: true })
+    if (!data) throw new Error('Produto não encontrado ou sem permissão para atualizar.')
+    return NextResponse.json({ ok: true, produto: data })
   } catch (err: any) {
     return NextResponse.json({ erro: err.message }, { status: 500 })
   }
