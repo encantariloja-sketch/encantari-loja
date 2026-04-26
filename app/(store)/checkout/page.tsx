@@ -1,10 +1,17 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Truck, CreditCard, Loader2 } from 'lucide-react'
 import { useCart } from '@/lib/CartContext'
 
 type Frete = { nome: string; preco: number; prazo: string; id: string }
+
+const STORAGE_KEY = 'encantari_checkout_dados'
+
+const dadosVazios = {
+  nome: '', email: '', cpf: '', telefone: '',
+  cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '',
+}
 
 export default function CheckoutPage() {
   const { itens, totalPreco, limpar } = useCart()
@@ -12,11 +19,35 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [opcoesFretes, setOpcoesFretes] = useState<Frete[]>([])
   const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null)
+  const [dados, setDados] = useState(dadosVazios)
 
-  const [dados, setDados] = useState({
-    nome: '', email: '', cpf: '', telefone: '',
-    cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '',
-  })
+  // Carrega dados salvos + sessão do usuário logado
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      try { setDados(JSON.parse(saved)) } catch {}
+    }
+    // Pré-preenche nome/email da sessão Supabase se logado
+    import('@/lib/supabase').then(({ getSupabase }) => {
+      getSupabase().auth.getSession().then(({ data: { session } }) => {
+        if (!session) return
+        const nome = session.user.user_metadata?.nome || ''
+        const email = session.user.email || ''
+        setDados(d => ({
+          ...d,
+          nome: d.nome || nome,
+          email: d.email || email,
+        }))
+      })
+    }).catch(() => {})
+  }, [])
+
+  // Persiste no localStorage sempre que dados mudar
+  useEffect(() => {
+    if (Object.values(dados).some(v => v)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dados))
+    }
+  }, [dados])
 
   function atualizar(campo: string, valor: string) {
     setDados(d => ({ ...d, [campo]: valor }))
@@ -69,6 +100,7 @@ export default function CheckoutPage() {
       const data = await res.json()
       if (data.url) {
         limpar()
+        localStorage.removeItem(STORAGE_KEY)
         window.location.href = data.url
       }
     } catch {
@@ -242,8 +274,8 @@ export default function CheckoutPage() {
           <div className="card p-5 sticky top-24">
             <h3 className="heading text-lg mb-4">Seu pedido</h3>
             <div className="space-y-2 text-sm mb-4">
-              {itens.map(({ produto, quantidade }) => (
-                <div key={produto.id} className="flex justify-between text-vinho/70">
+              {itens.map(({ produto, quantidade, chave }) => (
+                <div key={chave} className="flex justify-between text-vinho/70">
                   <span className="truncate mr-2">{produto.nome} ×{quantidade}</span>
                   <span>R$ {(produto.preco * quantidade).toFixed(2).replace('.', ',')}</span>
                 </div>
