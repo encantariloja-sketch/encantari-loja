@@ -68,8 +68,12 @@ export default function EditarProdutoPage() {
           imagens: p.imagens || [],
           slug: p.slug || '',
         })
-        if (p.variacoes && Array.isArray(p.variacoes)) {
-          setVariacoes(p.variacoes)
+        let variacoes = p.variacoes
+        if (typeof variacoes === 'string') {
+          try { variacoes = JSON.parse(variacoes) } catch { variacoes = null }
+        }
+        if (Array.isArray(variacoes) && variacoes.length > 0) {
+          setVariacoes(variacoes)
         }
       }
       setCategorias(catData.categorias || [])

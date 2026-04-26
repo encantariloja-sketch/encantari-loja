@@ -38,10 +38,16 @@ export default function ProdutoPage() {
       .then(d => {
         const p = d.produtos?.[0]
         if (!p) { setNaoEncontrado(true); return }
-        setProduto({ ...p, precoAntigo: p.precoAntigo ?? p.preco_antigo })
-        if (p.variacoes?.length) {
+        // parse defensivo — garante array mesmo se vier como string JSON
+        let variacoes = p.variacoes
+        if (typeof variacoes === 'string') {
+          try { variacoes = JSON.parse(variacoes) } catch { variacoes = null }
+        }
+        if (!Array.isArray(variacoes)) variacoes = null
+        setProduto({ ...p, variacoes, precoAntigo: p.precoAntigo ?? p.preco_antigo })
+        if (variacoes?.length) {
           const selecao: Record<string, string> = {}
-          p.variacoes.forEach((v: any) => {
+          variacoes.forEach((v: any) => {
             if (v.opcoes?.length) selecao[v.tipo] = v.opcoes[0].valor
           })
           setVariacaoSelecionada(selecao)
@@ -86,8 +92,6 @@ export default function ProdutoPage() {
   )
 
   const imagens = [produto.imagem, ...(produto.imagens || [])].filter(Boolean)
-  const todasSelecionadas = !produto.variacoes?.length ||
-    produto.variacoes.every(v => variacaoSelecionada[v.tipo])
 
   // imagem da variação selecionada (se houver)
   const imagemVariacao = produto.variacoes?.reduce<string | null>((acc, v) => {
@@ -285,24 +289,15 @@ export default function ProdutoPage() {
                   <button onClick={() => setQuantidade(q => q + 1)} className="px-4 py-3 text-vinho hover:bg-creme-dark transition-colors font-medium">+</button>
                 </div>
                 <button
-                  onClick={() => {
-                    if (!todasSelecionadas) return
-                    adicionar(
-                      produto as any,
-                      quantidade,
-                      Object.keys(variacaoSelecionada).length ? variacaoSelecionada : undefined
-                    )
-                  }}
-                  disabled={!todasSelecionadas}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  onClick={() => adicionar(
+                    produto as any,
+                    quantidade,
+                    Object.keys(variacaoSelecionada).length ? variacaoSelecionada : undefined
+                  )}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2">
                   <ShoppingBag size={18} /> Adicionar ao carrinho
                 </button>
               </div>
-              {!todasSelecionadas && (
-                <p className="text-xs text-vinho/50 flex items-center gap-1.5">
-                  <span className="text-rosa">↑</span> Selecione todas as opções acima para continuar
-                </p>
-              )}
               {produto.estoque === 'sob-consulta' && (
                 <p className="text-sm text-yellow-600 bg-yellow-50 rounded-xl p-3">Produto sob consulta — entre em contato para confirmar disponibilidade.</p>
               )}
