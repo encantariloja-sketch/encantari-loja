@@ -386,7 +386,7 @@ export default function EditarProdutoPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-semibold text-gray-900">Variações</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Ex: Cor, Tamanho, Material — deixe em branco se o produto não tem variações.</p>
+              <p className="text-xs text-gray-400 mt-0.5">Use para oferecer opções de cor, tamanho etc. Cada bloco = um tipo com suas opções.</p>
             </div>
             <button
               type="button"
@@ -398,24 +398,29 @@ export default function EditarProdutoPage() {
           </div>
 
           {variacoes.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-5 border-2 border-dashed border-gray-100 rounded-xl">
-              Nenhuma variação cadastrada.
-            </p>
+            <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-xl space-y-2">
+              <p className="text-sm text-gray-400">Nenhuma variação. Clique em Adicionar para criar.</p>
+              <p className="text-xs text-gray-300">Exemplo: um bloco "Cor" com opções "Preto", "Branco", "Cinza"</p>
+            </div>
           )}
 
           {variacoes.map((variacao, vIdx) => {
             const isCor = variacao.tipo.toLowerCase() === 'cor'
             return (
-              <div key={vIdx} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
-                <div className="flex items-center gap-2">
-                  {isCor && <Palette size={16} className="text-rosa flex-shrink-0" />}
-                  <input
-                    type="text"
-                    value={variacao.tipo}
-                    onChange={e => setTipoVariacao(vIdx, e.target.value)}
-                    placeholder="Nome da variação (ex: Cor, Tamanho, Material)"
-                    className="input flex-1 text-sm bg-white"
-                  />
+              <div key={vIdx} className="border border-vinho/10 rounded-xl overflow-hidden bg-gray-50/50">
+                {/* cabeçalho do tipo */}
+                <div className="flex items-center gap-2 bg-vinho/5 px-4 py-3 border-b border-vinho/10">
+                  {isCor && <Palette size={15} className="text-rosa flex-shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-semibold text-vinho/40 uppercase tracking-wide mb-0.5">Tipo de variação</p>
+                    <input
+                      type="text"
+                      value={variacao.tipo}
+                      onChange={e => setTipoVariacao(vIdx, e.target.value)}
+                      placeholder="Ex: Cor   /   Tamanho   /   Material"
+                      className="w-full bg-transparent text-sm font-medium text-vinho placeholder-gray-300 outline-none border-none"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => removerVariacao(vIdx)}
@@ -425,7 +430,15 @@ export default function EditarProdutoPage() {
                   </button>
                 </div>
 
-                <div className="space-y-2 pl-1">
+                {/* opções */}
+                <div className="p-4 space-y-2">
+                  <p className="text-[10px] font-semibold text-vinho/40 uppercase tracking-wide">
+                    {isCor ? 'Cores disponíveis' : 'Opções disponíveis'}
+                    <span className="font-normal normal-case ml-1 text-gray-300">
+                      {isCor ? '(cada cor que o cliente pode escolher)' : '(cada opção que o cliente pode escolher)'}
+                    </span>
+                  </p>
+
                   {variacao.opcoes.map((opcao, oIdx) => (
                     <div key={oIdx} className="flex items-center gap-2">
                       {isCor && (
@@ -440,9 +453,8 @@ export default function EditarProdutoPage() {
                       )}
                       <input type="text" value={opcao.valor}
                         onChange={e => setOpcaoValor(vIdx, oIdx, e.target.value)}
-                        placeholder={isCor ? 'Nome da cor (ex: Vermelho Rubi)' : 'Valor (ex: P, M, G)'}
+                        placeholder={isCor ? 'Nome da cor (ex: Preto, Branco, Azul)' : 'Ex: P, M, G, GG'}
                         className="input flex-1 text-sm bg-white" />
-                      {/* slot de imagem da opção */}
                       <label htmlFor={`ei-${vIdx}-${oIdx}`} className="flex-shrink-0 cursor-pointer relative group">
                         {opcao.imagem ? (
                           <div className="relative w-10 h-10">
@@ -455,7 +467,7 @@ export default function EditarProdutoPage() {
                           </div>
                         ) : (
                           <div className="w-10 h-10 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 group-hover:border-rosa group-hover:text-rosa transition-colors"
-                            title="Adicionar foto desta variação">
+                            title="Foto desta opção (opcional)">
                             <ImagePlus size={14} />
                           </div>
                         )}
@@ -468,17 +480,17 @@ export default function EditarProdutoPage() {
                       </button>
                     </div>
                   ))}
-                </div>
 
                 <button
                   type="button"
                   onClick={() => adicionarOpcao(vIdx)}
-                  className="flex items-center gap-1.5 text-xs font-medium text-vinho/50 hover:text-vinho transition-colors ml-1"
+                  className="flex items-center gap-1.5 text-xs font-medium text-vinho/50 hover:text-vinho transition-colors mt-1"
                 >
                   <Plus size={13} />
-                  {isCor ? 'Adicionar cor' : 'Adicionar opção'}
+                  {isCor ? '+ Adicionar cor' : '+ Adicionar opção'}
                 </button>
-              </div>
+                </div>{/* fecha p-4 space-y-2 */}
+              </div>{/* fecha bloco variação */}
             )
           })}
         </div>
