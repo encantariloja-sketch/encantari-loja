@@ -18,13 +18,14 @@ const ICONES_CAT: Record<string, string> = {
 
 type CatItem = { id: string; nome: string; icone: string; cor?: string }
 type ProdItem = { id: string; nome: string; categoria?: string; preco: number; imagem?: string }
-type Secao = 'topbar' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores' | 'institucional' | 'newsletter' | 'rodape' | 'configuracoes'
+type Secao = 'secoes_ativas' | 'topbar' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores' | 'institucional' | 'newsletter' | 'rodape' | 'configuracoes'
 
 function mergeConfig(saved: Partial<HomeConfig>): HomeConfig {
   const savedRodape = (saved.rodape || {}) as Partial<HomeConfig['rodape']>
   return {
     ...defaultConfig,
     ...saved,
+    secoes_ativas: { ...defaultConfig.secoes_ativas, ...(saved.secoes_ativas || {}) },
     hero: { ...defaultConfig.hero, ...(saved.hero || {}) },
     banner_editorial: { ...defaultConfig.banner_editorial, ...(saved.banner_editorial || {}) },
     institucional: {
@@ -204,6 +205,35 @@ export default function AdminHomePage() {
       </div>
 
       <div className="space-y-3">
+
+        {/* ── 0. SEÇÕES VISÍVEIS ── */}
+        <Secao titulo="Seções visíveis" emoji="👁️" sub="Ative ou desative blocos da página inicial" aberto={aberto === 'secoes_ativas'} onToggle={() => toggle('secoes_ativas')}>
+          <p className="text-xs text-gray-400 mb-4">Desmarque para ocultar uma seção da home sem apagar as configurações dela.</p>
+          <div className="space-y-2">
+            {([
+              { key: 'categorias',      label: 'Categorias em destaque' },
+              { key: 'lancamentos',     label: 'Lançamentos' },
+              { key: 'banner_editorial', label: 'Banner editorial' },
+              { key: 'mais_vendidos',   label: 'Mais Vendidos' },
+              { key: 'institucional',   label: 'Bloco institucional (Nossa proposta)' },
+              { key: 'banners_menores', label: 'Banners menores' },
+              { key: 'newsletter',      label: 'Newsletter' },
+            ] as { key: keyof HomeConfig['secoes_ativas']; label: string }[]).map(({ key, label }) => {
+              const ativo = config.secoes_ativas[key]
+              return (
+                <label key={key} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${ativo ? 'border-vinho/30 bg-vinho/5' : 'border-gray-100 bg-white'}`}>
+                  <div
+                    onClick={() => setConfig(c => ({ ...c, secoes_ativas: { ...c.secoes_ativas, [key]: !c.secoes_ativas[key] } }))}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 cursor-pointer transition-all ${ativo ? 'bg-vinho border-vinho' : 'border-gray-300'}`}
+                  >
+                    {ativo && <Check size={12} className="text-white" />}
+                  </div>
+                  <span className={`text-sm font-medium ${ativo ? 'text-gray-900' : 'text-gray-400 line-through'}`}>{label}</span>
+                </label>
+              )
+            })}
+          </div>
+        </Secao>
 
         {/* ── 1. FAIXA DO TOPO ── */}
         <Secao titulo="Faixa do topo" emoji="📢" sub={config.topbar.slice(0, 50) + '...'} aberto={aberto === 'topbar'} onToggle={() => toggle('topbar')}>

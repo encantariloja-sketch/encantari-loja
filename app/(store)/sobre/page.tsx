@@ -11,14 +11,23 @@ export default async function SobrePage() {
   return (
     <main className="min-h-screen bg-creme/30">
       {/* Hero */}
-      <div className="bg-vinho text-creme py-20 px-4 text-center">
-        <p className="text-rosa text-sm font-medium uppercase tracking-widest mb-3">
-          {institucional.label}
-        </p>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          {institucional.titulo}{' '}
-          <em className="font-light not-italic text-rosa">{institucional.titulo_italic}</em>
-        </h1>
+      <div className="relative bg-vinho text-creme py-20 px-4 text-center overflow-hidden">
+        {institucional.banner_imagem && (
+          <div className="absolute inset-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={institucional.banner_imagem} alt="" className="w-full h-full object-cover opacity-40" />
+            <div className="absolute inset-0 bg-vinho/60" />
+          </div>
+        )}
+        <div className="relative z-10">
+          <p className="text-rosa text-sm font-medium uppercase tracking-widest mb-3">
+            {institucional.label}
+          </p>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            {institucional.titulo}{' '}
+            <em className="font-light not-italic text-rosa">{institucional.titulo_italic}</em>
+          </h1>
+        </div>
       </div>
 
       {/* Corpo */}

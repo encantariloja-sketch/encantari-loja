@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const acoes = [
     { href: '/admin/produtos/novo', emoji: '📸', titulo: 'Novo produto',     sub: 'Adicione com foto da câmera',          cor: 'border-rosa/40 hover:border-rosa hover:bg-rosa/5' },
     { href: '/admin/home',         emoji: '🏠', titulo: 'Configurar home',   sub: 'Lançamentos, banners, categorias',     cor: 'border-vinho/30 hover:border-vinho hover:bg-vinho/5' },
+    { href: '/admin/paginas',      emoji: '📄', titulo: 'Páginas',           sub: 'Sobre e Termos de Uso',                cor: 'border-rosa/30 hover:border-rosa hover:bg-rosa/5' },
     { href: '/admin/produtos',     emoji: '📦', titulo: 'Ver produtos',      sub: carregando ? '...' : `${stats.total} produtos cadastrados`, cor: 'border-oliva/30 hover:border-oliva hover:bg-oliva/5' },
     { href: '/admin/pedidos',      emoji: '🛍️', titulo: 'Pedidos',           sub: 'Acompanhar vendas',                    cor: 'border-bege/60 hover:border-bege hover:bg-bege/10' },
   ]
