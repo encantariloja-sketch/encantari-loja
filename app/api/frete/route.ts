@@ -7,6 +7,13 @@ type ProdutoFrete = {
   dimensoes?: { comprimento: number; largura: number; altura: number }
 }
 
+const RETIRADA = {
+  id: 'retirada',
+  nome: 'Retirada na loja — Matinhos/PR',
+  preco: 0,
+  prazo: 'Combinar pelo WhatsApp',
+}
+
 export async function POST(req: Request) {
   const { cep_destino, produtos } = await req.json() as {
     cep_destino: string
@@ -22,7 +29,7 @@ export async function POST(req: Request) {
 
   if (!token || !cepOrigem) {
     return NextResponse.json({
-      opcoes: [],
+      opcoes: [RETIRADA],
       aviso: 'Frete não configurado. Configure MELHOR_ENVIO_TOKEN e MELHOR_ENVIO_FROM_CEP nas variáveis de ambiente do Vercel.',
     })
   }
@@ -72,8 +79,8 @@ export async function POST(req: Request) {
       throw new Error(`Resposta inesperada: ${JSON.stringify(data).slice(0, 200)}`)
     }
 
-    const opcoes = data
-      .filter((s: any) => !s.error && s.price && s.company?.id === 1) // apenas Correios
+    const correios = data
+      .filter((s: any) => !s.error && s.price && s.company?.id === 1)
       .map((s: any) => ({
         id: String(s.id),
         nome: `${s.company?.name ?? 'Correios'} — ${s.name}`,
@@ -83,15 +90,11 @@ export async function POST(req: Request) {
       .sort((a: any, b: any) => a.preco - b.preco)
       .slice(0, 5)
 
-    if (opcoes.length === 0) {
-      return NextResponse.json({ opcoes: [], aviso: 'Nenhuma opção dos Correios disponível para este CEP.' })
-    }
-
-    return NextResponse.json({ opcoes })
+    return NextResponse.json({ opcoes: [...correios, RETIRADA] })
   } catch (err: any) {
     console.error('Erro Melhor Envio:', err?.message || err)
     return NextResponse.json({
-      opcoes: [],
+      opcoes: [RETIRADA],
       aviso: `Erro ao calcular frete: ${err?.message || 'Tente novamente.'}`,
     })
   }
