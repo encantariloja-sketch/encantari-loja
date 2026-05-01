@@ -89,10 +89,12 @@ export default function Header({ topbar }: { topbar?: string }) {
         )}
 
         <nav className="hidden md:block border-t border-gray-100">
-          <div className="max-w-7xl mx-auto px-4">
-            <ul className="flex items-center gap-0 overflow-x-auto scroll-hide">
+          <div className="relative">
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
+            <ul className="flex items-center gap-0 overflow-x-auto px-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {navLinks.map(item => (
-                <li key={item.href}>
+                <li key={item.href} className="flex-shrink-0">
                   <Link href={item.href}
                     className="block px-3.5 py-3.5 text-sm text-vinho/70 hover:text-vinho font-medium whitespace-nowrap border-b-2 border-transparent hover:border-vinho transition-all">
                     {item.label}

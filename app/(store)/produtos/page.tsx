@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Filter, Search, Loader2 } from 'lucide-react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Search, Loader2 } from 'lucide-react'
 import ProductCard from '@/components/ProductCard'
 import type { Produto } from '@/data/produtos'
 
@@ -9,6 +9,7 @@ type Categoria = { id: string; nome: string; icone: string }
 
 function ProdutosContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const categoriaParam = searchParams.get('categoria') || 'todos'
   const ordemParam = searchParams.get('ordem') || 'relevancia'
 
@@ -16,9 +17,7 @@ function ProdutosContent() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
-  const [categoriaAtiva, setCategoriaAtiva] = useState(categoriaParam)
   const [subcategoriaAtiva, setSubcategoriaAtiva] = useState('todas')
-  const [ordenar, setOrdenar] = useState(ordemParam)
 
   useEffect(() => {
     Promise.all([
@@ -30,25 +29,48 @@ function ProdutosContent() {
     }).catch(() => {}).finally(() => setCarregando(false))
   }, [])
 
+  // Reseta subcategoria quando muda a categoria via URL
+  useEffect(() => {
+    setSubcategoriaAtiva('todas')
+  }, [categoriaParam])
+
+  function navegarCategoria(id: string) {
+    const params = new URLSearchParams()
+    if (id !== 'todos') params.set('categoria', id)
+    router.push(`/produtos${params.toString() ? '?' + params.toString() : ''}`)
+  }
+
+  function navegarOrdem(ordem: string) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('ordem', ordem)
+    router.push(`/produtos?${params.toString()}`)
+  }
+
   const subcategoriasDaCategoria = useMemo(() => {
-    if (categoriaAtiva === 'todos') return []
+    if (categoriaParam === 'todos') return []
     const subs = produtos
-      .filter(p => p.categoria === categoriaAtiva && p.subcategoria)
+      .filter(p => p.categoria === categoriaParam && p.subcategoria)
       .map(p => p.subcategoria as string)
     return Array.from(new Set(subs)).sort()
-  }, [categoriaAtiva, produtos])
+  }, [categoriaParam, produtos])
 
   const produtosFiltrados = useMemo(() => {
     let lista = [...produtos]
-    if (categoriaAtiva !== 'todos') lista = lista.filter(p => p.categoria === categoriaAtiva)
+    if (categoriaParam !== 'todos') lista = lista.filter(p => p.categoria === categoriaParam)
     if (subcategoriaAtiva !== 'todas') lista = lista.filter(p => p.subcategoria === subcategoriaAtiva)
     if (busca) lista = lista.filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()) || (p.descricao || '').toLowerCase().includes(busca.toLowerCase()))
-    if (ordenar === 'menor') lista.sort((a, b) => a.preco - b.preco)
-    if (ordenar === 'maior') lista.sort((a, b) => b.preco - a.preco)
-    if (ordenar === 'novos') lista.sort((a, b) => (b.novo ? 1 : 0) - (a.novo ? 1 : 0))
-    if (ordenar === 'ofertas') lista.sort((a, b) => ((b.precoAntigo ? 1 : 0) - (a.precoAntigo ? 1 : 0)))
+    if (ordemParam === 'menor') lista.sort((a, b) => a.preco - b.preco)
+    if (ordemParam === 'maior') lista.sort((a, b) => b.preco - a.preco)
+    if (ordemParam === 'novos') lista.sort((a, b) => (b.novo ? 1 : 0) - (a.novo ? 1 : 0))
+    if (ordemParam === 'ofertas') lista.sort((a, b) => ((b.precoAntigo ? 1 : 0) - (a.precoAntigo ? 1 : 0)))
     return lista
-  }, [categoriaAtiva, subcategoriaAtiva, busca, ordenar, produtos])
+  }, [categoriaParam, subcategoriaAtiva, busca, ordemParam, produtos])
+
+  const tituloCategoria = useMemo(() => {
+    if (categoriaParam === 'todos') return 'Loja'
+    const cat = categorias.find(c => c.id === categoriaParam)
+    return cat ? `${cat.icone} ${cat.nome}` : 'Loja'
+  }, [categoriaParam, categorias])
 
   if (carregando) return (
     <div className="flex justify-center items-center py-32">
@@ -58,7 +80,7 @@ function ProdutosContent() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <h1 className="heading text-3xl md:text-4xl mb-2">Loja</h1>
+      <h1 className="heading text-3xl md:text-4xl mb-2">{tituloCategoria}</h1>
       <p className="text-vinho/60 mb-8">{produtosFiltrados.length} produto(s) encontrado(s)</p>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -72,7 +94,7 @@ function ProdutosContent() {
             className="input pl-9"
           />
         </div>
-        <select value={ordenar} onChange={e => setOrdenar(e.target.value)} className="input w-auto min-w-[180px]">
+        <select value={ordemParam} onChange={e => navegarOrdem(e.target.value)} className="input w-auto min-w-[180px]">
           <option value="relevancia">Relevância</option>
           <option value="menor">Menor preço</option>
           <option value="maior">Maior preço</option>
@@ -82,13 +104,13 @@ function ProdutosContent() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
-        <button onClick={() => { setCategoriaAtiva('todos'); setSubcategoriaAtiva('todas') }}
-          className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${categoriaAtiva === 'todos' ? 'bg-vinho text-creme' : 'bg-white text-vinho border border-gray-200 hover:border-vinho'}`}>
+        <button onClick={() => navegarCategoria('todos')}
+          className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${categoriaParam === 'todos' ? 'bg-vinho text-creme' : 'bg-white text-vinho border border-gray-200 hover:border-vinho'}`}>
           Todos
         </button>
         {categorias.map(cat => (
-          <button key={cat.id} onClick={() => { setCategoriaAtiva(cat.id); setSubcategoriaAtiva('todas') }}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${categoriaAtiva === cat.id ? 'bg-vinho text-creme' : 'bg-white text-vinho border border-gray-200 hover:border-vinho'}`}>
+          <button key={cat.id} onClick={() => navegarCategoria(cat.id)}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${categoriaParam === cat.id ? 'bg-vinho text-creme' : 'bg-white text-vinho border border-gray-200 hover:border-vinho'}`}>
             {cat.icone} {cat.nome}
           </button>
         ))}
@@ -112,7 +134,7 @@ function ProdutosContent() {
       {produtosFiltrados.length === 0 ? (
         <div className="text-center py-20 text-vinho/50">
           <p className="text-lg">Nenhum produto encontrado.</p>
-          <button onClick={() => { setBusca(''); setCategoriaAtiva('todos') }} className="mt-4 btn-secondary text-sm">
+          <button onClick={() => { setBusca(''); navegarCategoria('todos') }} className="mt-4 btn-secondary text-sm">
             Limpar filtros
           </button>
         </div>

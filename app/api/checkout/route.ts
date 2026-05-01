@@ -56,6 +56,9 @@ export async function POST(req: Request) {
             apartment: dados.complemento,
           },
         },
+        payment_methods: {
+          installments: 12,
+        },
         back_urls: {
           success: `${siteUrl}/pedido/sucesso`,
           failure: `${siteUrl}/pedido/erro`,
