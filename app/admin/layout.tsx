@@ -2,11 +2,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingCart, Home, Tag, LogOut } from 'lucide-react'
+import { useEffect } from 'react'
+import { LayoutDashboard, Package, ShoppingCart, Home, Tag, LogOut, FileText } from 'lucide-react'
 
 const navLinks = [
   { href: '/admin',             label: 'Início',     icon: LayoutDashboard, mobile: true  },
   { href: '/admin/home',        label: 'Home',       icon: Home,            mobile: true  },
+  { href: '/admin/paginas',     label: 'Páginas',    icon: FileText,        mobile: false },
   { href: '/admin/produtos',    label: 'Produtos',   icon: Package,         mobile: true  },
   { href: '/admin/categorias',  label: 'Categorias', icon: Tag,             mobile: false },
   { href: '/admin/pedidos',     label: 'Pedidos',    icon: ShoppingCart,    mobile: true  },
@@ -15,6 +17,23 @@ const navLinks = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
+
+  // Desativa autocorrect/autocapitalize do browser em todos os inputs do admin
+  useEffect(() => {
+    function aplicar(root: Document | Element) {
+      root.querySelectorAll('input:not([type=number]):not([type=color]):not([type=file]):not([type=checkbox]):not([type=radio]), textarea').forEach(el => {
+        el.setAttribute('autocorrect', 'off')
+        el.setAttribute('autocapitalize', 'off')
+        el.setAttribute('spellcheck', 'false')
+      })
+    }
+    aplicar(document)
+    const obs = new MutationObserver(mutations => {
+      mutations.forEach(m => m.addedNodes.forEach(n => { if (n instanceof Element) aplicar(n) }))
+    })
+    obs.observe(document.body, { childList: true, subtree: true })
+    return () => obs.disconnect()
+  }, [])
 
   async function sair() {
     await fetch('/api/admin/auth', { method: 'DELETE' })

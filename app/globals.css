@@ -53,6 +53,11 @@ body {
 /* Admin mobile touch */
 .touch-target { min-height: 52px; }
 
+/* Impede que browsers mobile alterem acentos/ç nos inputs do admin */
+[data-admin] input, [data-admin] textarea {
+  -webkit-text-size-adjust: 100%;
+}
+
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }

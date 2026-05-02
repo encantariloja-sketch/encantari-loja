@@ -1,7 +1,26 @@
+'use client'
+import { useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, Heart } from 'lucide-react'
+import { Suspense } from 'react'
 
-export default function PedidoSucessoPage() {
+function SucessoContent() {
+  const searchParams = useSearchParams()
+  const paymentId = searchParams.get('payment_id') || searchParams.get('collection_id')
+  const status = searchParams.get('status') || searchParams.get('collection_status')
+
+  useEffect(() => {
+    if (paymentId && status === 'approved') {
+      // Backup: garante que o pedido seja salvo mesmo se o webhook falhou
+      fetch('/api/pedido/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_id: paymentId }),
+      }).catch(() => {})
+    }
+  }, [paymentId, status])
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
       <div className="text-center max-w-md">
@@ -16,5 +35,13 @@ export default function PedidoSucessoPage() {
         </Link>
       </div>
     </div>
+  )
+}
+
+export default function PedidoSucessoPage() {
+  return (
+    <Suspense fallback={null}>
+      <SucessoContent />
+    </Suspense>
   )
 }
