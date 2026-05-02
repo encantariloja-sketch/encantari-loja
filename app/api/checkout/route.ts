@@ -30,7 +30,9 @@ export async function POST(req: Request) {
     })
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'
+  const host = req.headers.get('host') || 'localhost:3002'
+  const proto = req.headers.get('x-forwarded-proto') || 'https'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || `${proto}://${host}`
   const sandbox = process.env.MP_SANDBOX === 'true'
 
   try {

@@ -27,16 +27,23 @@ export default function CheckoutPage() {
     if (saved) {
       try { setDados(JSON.parse(saved)) } catch {}
     }
-    // Pré-preenche nome/email da sessão Supabase se logado
+    // Pré-preenche todos os campos da sessão Supabase se logado
     import('@/lib/supabase').then(({ getSupabase }) => {
       getSupabase().auth.getSession().then(({ data: { session } }) => {
         if (!session) return
-        const nome = session.user.user_metadata?.nome || ''
-        const email = session.user.email || ''
+        const meta = session.user.user_metadata || {}
         setDados(d => ({
-          ...d,
-          nome: d.nome || nome,
-          email: d.email || email,
+          nome: d.nome || meta.nome || '',
+          email: d.email || session.user.email || '',
+          cpf: d.cpf || meta.cpf || '',
+          telefone: d.telefone || meta.telefone || '',
+          cep: d.cep || meta.cep || '',
+          rua: d.rua || meta.rua || '',
+          numero: d.numero || meta.numero || '',
+          complemento: d.complemento || meta.complemento || '',
+          bairro: d.bairro || meta.bairro || '',
+          cidade: d.cidade || meta.cidade || '',
+          estado: d.estado || meta.estado || '',
         }))
       })
     }).catch(() => {})
@@ -101,6 +108,19 @@ export default function CheckoutPage() {
       if (data.url) {
         limpar()
         localStorage.removeItem(STORAGE_KEY)
+        // Salva dados do cliente no perfil Supabase (sem aguardar)
+        import('@/lib/supabase').then(({ getSupabase }) => {
+          const sb = getSupabase()
+          sb.auth.getSession().then(({ data: { session } }) => {
+            if (!session) return
+            sb.auth.updateUser({ data: {
+              nome: dados.nome, cpf: dados.cpf, telefone: dados.telefone,
+              cep: dados.cep, rua: dados.rua, numero: dados.numero,
+              complemento: dados.complemento, bairro: dados.bairro,
+              cidade: dados.cidade, estado: dados.estado,
+            }})
+          })
+        }).catch(() => {})
         window.location.href = data.url
       }
     } catch {
@@ -148,11 +168,11 @@ export default function CheckoutPage() {
               <h2 className="heading text-xl">Dados pessoais</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-vinho mb-1">Nome completo</label>
+                  <label className="block text-sm font-medium text-vinho mb-1">Nome completo <span className="text-rosa">*</span></label>
                   <input className="input" value={dados.nome} onChange={e => atualizar('nome', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-vinho mb-1">Email</label>
+                  <label className="block text-sm font-medium text-vinho mb-1">Email <span className="text-rosa">*</span></label>
                   <input type="email" className="input" value={dados.email} onChange={e => atualizar('email', e.target.value)} />
                 </div>
                 <div>
@@ -167,18 +187,18 @@ export default function CheckoutPage() {
               <h2 className="heading text-xl pt-4">Endereço de entrega</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-vinho mb-1">CEP</label>
+                  <label className="block text-sm font-medium text-vinho mb-1">CEP <span className="text-rosa">*</span></label>
                   <input className="input" placeholder="00000-000" value={dados.cep}
                     onChange={e => atualizar('cep', e.target.value)}
                     onBlur={buscarCep}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-vinho mb-1">Rua</label>
+                  <label className="block text-sm font-medium text-vinho mb-1">Rua <span className="text-rosa">*</span></label>
                   <input className="input" value={dados.rua} onChange={e => atualizar('rua', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-vinho mb-1">Número</label>
+                  <label className="block text-sm font-medium text-vinho mb-1">Número <span className="text-rosa">*</span></label>
                   <input className="input" value={dados.numero} onChange={e => atualizar('numero', e.target.value)} />
                 </div>
                 <div>
@@ -186,21 +206,21 @@ export default function CheckoutPage() {
                   <input className="input" value={dados.complemento} onChange={e => atualizar('complemento', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-vinho mb-1">Bairro</label>
+                  <label className="block text-sm font-medium text-vinho mb-1">Bairro <span className="text-rosa">*</span></label>
                   <input className="input" value={dados.bairro} onChange={e => atualizar('bairro', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-vinho mb-1">Cidade</label>
+                  <label className="block text-sm font-medium text-vinho mb-1">Cidade <span className="text-rosa">*</span></label>
                   <input className="input" value={dados.cidade} onChange={e => atualizar('cidade', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-vinho mb-1">Estado</label>
+                  <label className="block text-sm font-medium text-vinho mb-1">Estado <span className="text-rosa">*</span></label>
                   <input className="input" maxLength={2} value={dados.estado} onChange={e => atualizar('estado', e.target.value)} />
                 </div>
               </div>
               <button
                 onClick={calcularFrete}
-                disabled={loading || !dados.nome || !dados.email || !dados.cep}
+                disabled={loading || !dados.nome || !dados.email || !dados.cep || !dados.rua || !dados.numero || !dados.bairro || !dados.cidade || !dados.estado}
                 className="btn-primary w-full flex items-center justify-center gap-2 mt-4"
               >
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Truck size={18} />}

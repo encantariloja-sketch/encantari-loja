@@ -55,6 +55,7 @@ export async function POST() {
         frete_nome: meta.frete?.nome || '',
         frete_preco: meta.frete?.preco || 0,
         total: payment.transaction_amount,
+        criado_em: payment.date_approved || payment.date_created || new Date().toISOString(),
         atualizado_em: new Date().toISOString(),
       }
     })
