@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Loader2, RefreshCw, Package, ChevronDown } from 'lucide-react'
+import { Loader2, RefreshCw, Package, ChevronDown, Download } from 'lucide-react'
 
 type Item = { title: string; quantity: number; unit_price: number }
 type Pedido = {
@@ -33,6 +33,26 @@ export default function AdminPedidosPage() {
   const [carregando, setCarregando] = useState(true)
   const [expandido, setExpandido] = useState<string | null>(null)
   const [atualizando, setAtualizando] = useState<string | null>(null)
+  const [sincronizando, setSincronizando] = useState(false)
+
+  async function sincronizar() {
+    setSincronizando(true)
+    try {
+      const res = await fetch('/api/admin/pedidos/sync', { method: 'POST' })
+      const data = await res.json()
+      if (data.erro) {
+        alert('Erro: ' + data.erro)
+      } else if (data.importados === 0) {
+        alert(`Todos os ${data.total} pedidos já estavam no banco.`)
+      } else {
+        alert(`✅ ${data.importados} pedido(s) importado(s) do Mercado Pago!`)
+        await carregar()
+      }
+    } catch {
+      alert('Erro de conexão.')
+    }
+    setSincronizando(false)
+  }
 
   async function carregar() {
     setCarregando(true)
@@ -70,9 +90,17 @@ export default function AdminPedidosPage() {
           <h1 className="text-xl font-semibold text-gray-900">Pedidos</h1>
           <p className="text-gray-400 text-sm mt-0.5">{pedidos.length} pedido(s) no total</p>
         </div>
-        <button onClick={carregar} className="flex items-center gap-2 px-4 py-2 text-sm text-vinho border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
-          <RefreshCw size={15} /> Atualizar
-        </button>
+        <div className="flex gap-2">
+          <button onClick={sincronizar} disabled={sincronizando}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-vinho border border-vinho/30 rounded-full hover:bg-vinho/5 transition-colors disabled:opacity-50"
+            title="Importa pedidos aprovados diretamente do Mercado Pago">
+            {sincronizando ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            {sincronizando ? 'Importando...' : 'Importar do MP'}
+          </button>
+          <button onClick={carregar} className="flex items-center gap-2 px-4 py-2 text-sm text-vinho border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
+            <RefreshCw size={15} /> Atualizar
+          </button>
+        </div>
       </div>
 
       {pedidos.length === 0 ? (
