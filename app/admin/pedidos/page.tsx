@@ -41,6 +41,26 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
 
 const STATUS_OPCOES = ['pago', 'enviado', 'entregue', 'cancelado', 'pendente']
 
+const FILTROS = [
+  { id: 'ativos',    label: 'Pagos e Pendentes' },
+  { id: 'pago',      label: 'Pagos' },
+  { id: 'enviado',   label: 'Enviados' },
+  { id: 'entregue',  label: 'Entregues' },
+  { id: 'pendente',  label: 'Pendentes' },
+  { id: 'cancelado', label: 'Cancelados' },
+  { id: 'todos',     label: 'Todos' },
+] as const
+type FiltroId = typeof FILTROS[number]['id']
+
+function pedidoPassaFiltro(status: string, filtro: FiltroId) {
+  const s = status?.toLowerCase()
+  if (filtro === 'todos') return true
+  if (filtro === 'ativos') return ['pago', 'approved', 'pendente', 'pending'].includes(s)
+  if (filtro === 'pago')     return ['pago', 'approved'].includes(s)
+  if (filtro === 'pendente') return ['pendente', 'pending'].includes(s)
+  return s === filtro
+}
+
 function Campo({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null
   return (
@@ -57,6 +77,7 @@ export default function AdminPedidosPage() {
   const [expandido, setExpandido] = useState<string | null>(null)
   const [atualizando, setAtualizando] = useState<string | null>(null)
   const [sincronizando, setSincronizando] = useState(false)
+  const [filtro, setFiltro] = useState<FiltroId>('ativos')
 
   async function sincronizar() {
     setSincronizando(true)
@@ -126,15 +147,34 @@ export default function AdminPedidosPage() {
         </div>
       </div>
 
-      {pedidos.length === 0 ? (
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {FILTROS.map(f => (
+          <button
+            key={f.id}
+            onClick={() => { setFiltro(f.id); setExpandido(null) }}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              filtro === f.id
+                ? 'bg-vinho text-white border-vinho'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-vinho/50 hover:text-vinho'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {(() => {
+        const visiveis = pedidos.filter(p => pedidoPassaFiltro(p.status, filtro))
+        return visiveis.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <Package size={40} className="mx-auto text-gray-200 mb-3" />
-          <p className="text-gray-400 text-sm">Nenhum pedido ainda.</p>
-          <p className="text-gray-300 text-xs mt-1">Os pedidos aparecem aqui após a confirmação do Mercado Pago.</p>
+          <p className="text-gray-400 text-sm">{pedidos.length === 0 ? 'Nenhum pedido ainda.' : 'Nenhum pedido com esse filtro.'}</p>
+          {pedidos.length === 0 && <p className="text-gray-300 text-xs mt-1">Os pedidos aparecem aqui após a confirmação do Mercado Pago.</p>}
         </div>
       ) : (
         <div className="space-y-3">
-          {pedidos.map(p => {
+          {visiveis.map(p => {
             const st = STATUS_MAP[p.status] || { label: p.status, cls: 'bg-gray-100 text-gray-600' }
             const aberto = expandido === p.id
             const itens: Item[] = Array.isArray(p.itens) ? p.itens : []
@@ -244,7 +284,8 @@ export default function AdminPedidosPage() {
             )
           })}
         </div>
-      )}
+      )
+      })()}
     </div>
   )
 }
