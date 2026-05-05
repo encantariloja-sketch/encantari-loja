@@ -18,7 +18,7 @@ const ICONES_CAT: Record<string, string> = {
 
 type CatItem = { id: string; nome: string; icone: string; cor?: string }
 type ProdItem = { id: string; nome: string; categoria?: string; preco: number; imagem?: string }
-type Secao = 'secoes_ativas' | 'topbar' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores' | 'institucional' | 'newsletter' | 'rodape' | 'configuracoes'
+type Secao = 'secoes_ativas' | 'topbar' | 'beneficios_footer' | 'hero' | 'categorias' | 'lancamentos' | 'mais_vendidos' | 'banner_editorial' | 'banners_menores' | 'institucional' | 'newsletter' | 'rodape' | 'configuracoes'
 
 function mergeConfig(saved: Partial<HomeConfig>): HomeConfig {
   const savedRodape = (saved.rodape || {}) as Partial<HomeConfig['rodape']>
@@ -26,6 +26,7 @@ function mergeConfig(saved: Partial<HomeConfig>): HomeConfig {
     ...defaultConfig,
     ...saved,
     secoes_ativas: { ...defaultConfig.secoes_ativas, ...(saved.secoes_ativas || {}) },
+    beneficios_footer: saved.beneficios_footer ?? defaultConfig.beneficios_footer,
     hero: { ...defaultConfig.hero, ...(saved.hero || {}) },
     banner_editorial: { ...defaultConfig.banner_editorial, ...(saved.banner_editorial || {}) },
     institucional: {
@@ -236,9 +237,48 @@ export default function AdminHomePage() {
         </Secao>
 
         {/* ── 1. FAIXA DO TOPO ── */}
-        <Secao titulo="Faixa do topo" emoji="📢" sub={config.topbar.slice(0, 50) + '...'} aberto={aberto === 'topbar'} onToggle={() => toggle('topbar')}>
+        <Secao titulo="Faixa do topo" emoji="📢" sub={config.topbar.slice(0, 60)} aberto={aberto === 'topbar'} onToggle={() => toggle('topbar')}>
+          <p className="text-xs text-gray-400 mb-2">Texto exibido na barra rosa no topo do site. Use • para separar informações.</p>
           <textarea value={config.topbar} onChange={e => setConfig(c => ({ ...c, topbar: e.target.value }))}
             className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-rosa" rows={2} />
+        </Secao>
+
+        {/* ── 1b. BENEFÍCIOS DO RODAPÉ ── */}
+        <Secao titulo="Benefícios do rodapé" emoji="🏷️" sub="4 ícones na parte inferior do site" aberto={aberto === 'beneficios_footer'} onToggle={() => toggle('beneficios_footer')}>
+          <p className="text-xs text-gray-400 mb-3">Os ícones são fixos (caminhão, cadeado, cartão, troca). Edite só os textos.</p>
+          <div className="space-y-3">
+            {(['🚚', '🔒', '💳', '🔄'] as const).map((emoji, i) => (
+              <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+                <span className="text-xl w-7 text-center flex-shrink-0">{emoji}</span>
+                <div className="flex-1 grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Título</label>
+                    <input
+                      value={config.beneficios_footer[i]?.titulo || ''}
+                      onChange={e => {
+                        const novo = [...config.beneficios_footer]
+                        novo[i] = { ...novo[i], titulo: e.target.value }
+                        setConfig(c => ({ ...c, beneficios_footer: novo }))
+                      }}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rosa"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Subtítulo</label>
+                    <input
+                      value={config.beneficios_footer[i]?.sub || ''}
+                      onChange={e => {
+                        const novo = [...config.beneficios_footer]
+                        novo[i] = { ...novo[i], sub: e.target.value }
+                        setConfig(c => ({ ...c, beneficios_footer: novo }))
+                      }}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rosa"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </Secao>
 
         {/* ── 2. HERO ── */}

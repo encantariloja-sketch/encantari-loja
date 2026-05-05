@@ -4,10 +4,18 @@ import { Instagram, Mail, MapPin, Phone, CreditCard, Shield, Truck, RefreshCcw }
 import { getHomeConfig } from '@/lib/homeConfig'
 import { getCategorias } from '@/lib/getCategorias'
 
+const ICONES_FOOTER = [
+  <Truck size={22} key="truck" />,
+  <Shield size={22} key="shield" />,
+  <CreditCard size={22} key="card" />,
+  <RefreshCcw size={22} key="refresh" />,
+]
+
 export default async function Footer() {
   const [config, categorias] = await Promise.all([getHomeConfig(), getCategorias()])
   const { rodape } = config
   const waNum = config.whatsapp.replace(/\D/g, '')
+  const beneficios = config.beneficios_footer?.length ? config.beneficios_footer : []
 
   return (
     <footer className="bg-vinho text-creme/80 mt-16">
@@ -15,14 +23,9 @@ export default async function Footer() {
       <div className="border-b border-creme/10">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { icon: <Truck size={22} />, titulo: 'Frete para todo Brasil', sub: 'Via Melhor Envio' },
-              { icon: <Shield size={22} />, titulo: 'Compra segura', sub: 'Site protegido SSL' },
-              { icon: <CreditCard size={22} />, titulo: 'Cartão ou Pix', sub: 'Parcelamento com juros' },
-              { icon: <RefreshCcw size={22} />, titulo: 'Troca fácil', sub: 'Política flexível' },
-            ].map(b => (
-              <div key={b.titulo} className="flex items-start gap-3">
-                <div className="text-rosa mt-0.5 flex-shrink-0">{b.icon}</div>
+            {beneficios.map((b, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="text-rosa mt-0.5 flex-shrink-0">{ICONES_FOOTER[i]}</div>
                 <div>
                   <p className="text-creme font-medium text-sm">{b.titulo}</p>
                   <p className="text-creme/50 text-xs">{b.sub}</p>

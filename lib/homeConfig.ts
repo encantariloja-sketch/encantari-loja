@@ -59,6 +59,7 @@ export type HomeConfig = {
     ultima_atualizacao: string
     secoes: Array<{ titulo: string; conteudo: string }>
   }
+  beneficios_footer: Array<{ titulo: string; sub: string }>
   rodape: {
     email: string
     instagram: string
@@ -71,7 +72,13 @@ export type HomeConfig = {
 
 export const defaultConfig: HomeConfig = {
   whatsapp: '5541995872092',
-  topbar: 'Frete grátis para todo o Brasil acima de R$ 199 • Parcelamento em até 12×',
+  topbar: 'Entregamos para todo o Brasil • Pague com Pix ou cartão',
+  beneficios_footer: [
+    { titulo: 'Frete para todo Brasil', sub: 'Via Melhor Envio' },
+    { titulo: 'Compra segura', sub: 'Site protegido SSL' },
+    { titulo: 'Cartão ou Pix', sub: 'Parcelamento com juros' },
+    { titulo: 'Troca fácil', sub: 'Política flexível' },
+  ],
   secoes_ativas: {
     categorias: true,
     lancamentos: true,
@@ -174,6 +181,7 @@ export const getHomeConfig = cache(async (): Promise<HomeConfig> => {
       ...defaultConfig,
       ...saved,
       secoes_ativas: { ...defaultConfig.secoes_ativas, ...(saved.secoes_ativas || {}) },
+      beneficios_footer: saved.beneficios_footer ?? defaultConfig.beneficios_footer,
       hero: { ...defaultConfig.hero, ...(saved.hero || {}) },
       banner_editorial: { ...defaultConfig.banner_editorial, ...(saved.banner_editorial || {}) },
       institucional: {
