@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { enviarEmail, emailPedidoEnviado, emailPedidoProntoRetirada } from '@/lib/email'
 
 function isAuthorized() {
   const key = cookies().get('admin-key')?.value
@@ -29,15 +30,57 @@ export async function GET(req: Request) {
 export async function PATCH(req: Request) {
   if (!isAuthorized()) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
-  const { id, status } = await req.json()
+  const { id, status, rastreio, retirada } = await req.json()
+
+  if (status === 'enviado' && !rastreio && !retirada) {
+    return NextResponse.json({ erro: 'Informe o código de rastreamento ou marque como retirada.' }, { status: 400 })
+  }
+
   try {
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
-    const { error } = await db
-      .from('pedidos')
-      .update({ status, atualizado_em: new Date().toISOString() })
-      .eq('id', id)
+
+    const update: Record<string, any> = { status, atualizado_em: new Date().toISOString() }
+    if (rastreio) update.rastreio = rastreio
+    if (retirada) update.retirada = true
+
+    const { error } = await db.from('pedidos').update(update).eq('id', id)
     if (error) throw error
+
+    // Busca dados do pedido para enviar email
+    if (status === 'enviado') {
+      const { data: pedido } = await db
+        .from('pedidos')
+        .select('comprador, mp_payment_id, frete_nome')
+        .eq('id', id)
+        .single()
+
+      const email = pedido?.comprador?.email
+      const nome = pedido?.comprador?.nome || 'cliente'
+      const paymentId = pedido?.mp_payment_id || id
+
+      if (email) {
+        if (retirada) {
+          await enviarEmail({
+            to: email,
+            subject: 'Seu pedido está pronto para retirada — Encantari 🎀',
+            html: emailPedidoProntoRetirada({ nome, paymentId }),
+          })
+        } else {
+          await enviarEmail({
+            to: email,
+            subject: 'Seu pedido foi enviado — Encantari 📦',
+            html: emailPedidoEnviado({
+              nome,
+              paymentId,
+              rastreio,
+              transportadora: pedido?.frete_nome || undefined,
+            }),
+          })
+        }
+      }
+    }
+
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ erro: err?.message || String(err) }, { status: 500 })

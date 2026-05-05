@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
+import { enviarEmail, emailConfirmacaoPedido } from '@/lib/email'
 
 export const maxDuration = 30
 
@@ -40,31 +41,17 @@ async function salvarPedido(paymentId: string) {
     console.log('Webhook: pedido salvo com sucesso', payment.id)
   }
 
-  // Email de confirmação via Resend
-  const resendKey = process.env.RESEND_API_KEY
-  if (resendKey && meta.dados?.email) {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM || 'Encantari <encantari.loja@gmail.com>',
-        to: [meta.dados.email],
-        subject: `Pedido confirmado — Encantari ✨`,
-        html: `
-          <div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:32px;background:#FEF4F3;border-radius:16px">
-            <h1 style="color:#491E2F;font-size:28px;margin-bottom:8px">encantari</h1>
-            <p style="color:#491E2F;font-size:16px">Obrigada pela sua compra, ${meta.dados.nome?.split(' ')[0] || ''}! ✨</p>
-            <p style="color:#8a6a6a;font-size:14px">Seu pedido #${payment.id} foi aprovado e em breve entraremos em contato com o rastreamento.</p>
-            <div style="background:white;border-radius:12px;padding:20px;margin:20px 0">
-              <p style="color:#491E2F;font-weight:bold;margin-bottom:12px">Resumo do pedido:</p>
-              ${(payment.additional_info?.items || []).map((i: any) =>
-                `<p style="color:#666;font-size:14px;margin:4px 0">${i.title} × ${i.quantity} — R$ ${(parseFloat(i.unit_price) * parseInt(i.quantity)).toFixed(2).replace('.', ',')}</p>`
-              ).join('')}
-              <p style="color:#491E2F;font-weight:bold;margin-top:12px">Total: R$ ${payment.transaction_amount?.toFixed(2).replace('.', ',')}</p>
-            </div>
-            <p style="color:#8a6a6a;font-size:13px">Dúvidas? <a href="mailto:encantari.loja@gmail.com" style="color:#EF9493">encantari.loja@gmail.com</a></p>
-          </div>
-        `,
+  // Email de confirmação de pedido
+  if (meta.dados?.email) {
+    await enviarEmail({
+      to: meta.dados.email,
+      subject: 'Pedido confirmado — Encantari ✨',
+      html: emailConfirmacaoPedido({
+        nome: meta.dados.nome || 'cliente',
+        paymentId: String(payment.id),
+        itens: payment.additional_info?.items || [],
+        total: payment.transaction_amount,
+        frete: meta.frete?.nome ? { nome: meta.frete.nome, preco: meta.frete.preco || 0 } : undefined,
       }),
     })
   }

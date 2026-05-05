@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Loader2, RefreshCw, Package, ChevronDown, Download, User, MapPin, ShoppingBag } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Loader2, RefreshCw, Package, ChevronDown, Download, User, MapPin, ShoppingBag, X } from 'lucide-react'
 
 type Item = { title: string; quantity: number; unit_price: number }
 type Comprador = {
@@ -79,6 +79,13 @@ export default function AdminPedidosPage() {
   const [sincronizando, setSincronizando] = useState(false)
   const [filtro, setFiltro] = useState<FiltroId>('ativos')
 
+  // Modal de envio
+  const [modalEnvio, setModalEnvio] = useState<{ id: string; nome: string } | null>(null)
+  const [rastreio, setRastreio] = useState('')
+  const [retirada, setRetirada] = useState(false)
+  const [enviandoModal, setEnviandoModal] = useState(false)
+  const rastreioRef = useRef<HTMLInputElement>(null)
+
   async function sincronizar() {
     setSincronizando(true)
     try {
@@ -110,7 +117,14 @@ export default function AdminPedidosPage() {
 
   useEffect(() => { carregar() }, [])
 
-  async function atualizarStatus(id: string, status: string) {
+  async function atualizarStatus(id: string, status: string, pedidoNome?: string) {
+    if (status === 'enviado') {
+      setRastreio('')
+      setRetirada(false)
+      setModalEnvio({ id, nome: pedidoNome || '' })
+      setTimeout(() => rastreioRef.current?.focus(), 100)
+      return
+    }
     setAtualizando(id)
     try {
       await fetch('/api/admin/pedidos', {
@@ -123,12 +137,86 @@ export default function AdminPedidosPage() {
     setAtualizando(null)
   }
 
+  async function confirmarEnvio() {
+    if (!modalEnvio) return
+    if (!retirada && !rastreio.trim()) {
+      rastreioRef.current?.focus()
+      return
+    }
+    setEnviandoModal(true)
+    try {
+      const res = await fetch('/api/admin/pedidos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: modalEnvio.id, status: 'enviado', rastreio: rastreio.trim() || undefined, retirada: retirada || undefined }),
+      })
+      const data = await res.json()
+      if (data.erro) { alert('Erro: ' + data.erro); setEnviandoModal(false); return }
+      setPedidos(p => p.map(x => x.id === modalEnvio.id ? { ...x, status: 'enviado' } : x))
+      setModalEnvio(null)
+    } catch { alert('Erro de conexão.') }
+    setEnviandoModal(false)
+  }
+
   if (carregando) {
     return <div className="flex justify-center py-24"><Loader2 size={28} className="animate-spin text-vinho" /></div>
   }
 
   return (
     <div>
+      {/* Modal de envio */}
+      {modalEnvio && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-gray-900">Marcar como Enviado</h2>
+              <button onClick={() => setModalEnvio(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">
+              {modalEnvio.nome && <><strong className="text-gray-700">{modalEnvio.nome}</strong> · </>}
+              Um email será enviado automaticamente ao cliente.
+            </p>
+
+            <label className="flex items-center gap-3 mb-5 cursor-pointer select-none">
+              <input type="checkbox" checked={retirada} onChange={e => setRetirada(e.target.checked)}
+                className="w-4 h-4 accent-vinho rounded" />
+              <span className="text-sm text-gray-700">Retirada na loja (sem rastreamento)</span>
+            </label>
+
+            {!retirada && (
+              <div className="mb-5">
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+                  Código de rastreamento <span className="text-rosa">*</span>
+                </label>
+                <input
+                  ref={rastreioRef}
+                  value={rastreio}
+                  onChange={e => setRastreio(e.target.value.toUpperCase())}
+                  onKeyDown={e => e.key === 'Enter' && confirmarEnvio()}
+                  placeholder="Ex: BR123456789BR"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-vinho/30 focus:border-vinho"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button onClick={() => setModalEnvio(null)}
+                className="flex-1 px-4 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarEnvio}
+                disabled={enviandoModal || (!retirada && !rastreio.trim())}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-vinho text-white rounded-full hover:bg-vinho/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {enviandoModal ? <Loader2 size={14} className="animate-spin" /> : null}
+                {enviandoModal ? 'Enviando...' : 'Confirmar e enviar email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Pedidos</h1>
@@ -263,7 +351,7 @@ export default function AdminPedidosPage() {
                       {STATUS_OPCOES.map(s => (
                         <button
                           key={s}
-                          onClick={() => atualizarStatus(p.id, s)}
+                          onClick={() => atualizarStatus(p.id, s, c.nome)}
                           disabled={atualizando === p.id || p.status === s}
                           className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all disabled:opacity-50 ${
                             p.status === s
