@@ -18,7 +18,7 @@ export default async function Footer() {
             {[
               { icon: <Truck size={22} />, titulo: 'Frete para todo Brasil', sub: 'Via Melhor Envio' },
               { icon: <Shield size={22} />, titulo: 'Compra segura', sub: 'Site protegido SSL' },
-              { icon: <CreditCard size={22} />, titulo: 'Parcele em até 12×', sub: 'Sem juros no cartão' },
+              { icon: <CreditCard size={22} />, titulo: 'Cartão ou Pix', sub: 'Parcelamento com juros' },
               { icon: <RefreshCcw size={22} />, titulo: 'Troca fácil', sub: 'Política flexível' },
             ].map(b => (
               <div key={b.titulo} className="flex items-start gap-3">
