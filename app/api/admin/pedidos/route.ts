@@ -51,25 +51,30 @@ export async function PATCH(req: Request) {
     if (status === 'enviado') {
       const { data: pedido } = await db
         .from('pedidos')
-        .select('comprador, mp_payment_id, frete_nome')
+        .select('comprador, mp_payment_id, frete_nome, frete_preco, itens, total')
         .eq('id', id)
         .single()
 
       const email = pedido?.comprador?.email
       const nome = pedido?.comprador?.nome || 'cliente'
       const paymentId = pedido?.mp_payment_id || id
+      const itens = pedido?.itens || []
+      const total = pedido?.total
+      const frete = pedido?.frete_nome
+        ? { nome: pedido.frete_nome, preco: pedido.frete_preco || 0 }
+        : undefined
 
       if (email) {
         const resultado = retirada
           ? await enviarEmail({
               to: email,
               subject: 'Seu pedido está pronto para retirada — Encantari 🎀',
-              html: emailPedidoProntoRetirada({ nome, paymentId }),
+              html: emailPedidoProntoRetirada({ nome, paymentId, itens, total, frete }),
             })
           : await enviarEmail({
               to: email,
               subject: 'Seu pedido foi enviado — Encantari 📦',
-              html: emailPedidoEnviado({ nome, paymentId, rastreio, transportadora: pedido?.frete_nome || undefined }),
+              html: emailPedidoEnviado({ nome, paymentId, rastreio, transportadora: pedido?.frete_nome || undefined, itens, total, frete }),
             })
 
         return NextResponse.json({ ok: true, email_enviado: resultado.ok, email_destino: email, email_erro: resultado.erro })
