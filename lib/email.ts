@@ -1,14 +1,22 @@
 const FROM = process.env.EMAIL_FROM || 'Encantari <contato@encantari.com.br>'
 
-export async function enviarEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+export async function enviarEmail({ to, subject, html }: { to: string; subject: string; html: string }): Promise<{ ok: boolean; erro?: string }> {
   const key = process.env.RESEND_API_KEY
-  if (!key) { console.warn('RESEND_API_KEY não configurado'); return }
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM, to: [to], subject, html }),
-  })
-  if (!res.ok) console.error('Resend erro:', res.status, await res.text())
+  if (!key) return { ok: false, erro: 'RESEND_API_KEY não configurado' }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM, to: [to], subject, html }),
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      return { ok: false, erro: `Resend ${res.status}: ${txt.slice(0, 200)}` }
+    }
+    return { ok: true }
+  } catch (err: any) {
+    return { ok: false, erro: err?.message || String(err) }
+  }
 }
 
 function base(conteudo: string) {

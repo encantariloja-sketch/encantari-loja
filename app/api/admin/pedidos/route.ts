@@ -60,25 +60,22 @@ export async function PATCH(req: Request) {
       const paymentId = pedido?.mp_payment_id || id
 
       if (email) {
-        if (retirada) {
-          await enviarEmail({
-            to: email,
-            subject: 'Seu pedido está pronto para retirada — Encantari 🎀',
-            html: emailPedidoProntoRetirada({ nome, paymentId }),
-          })
-        } else {
-          await enviarEmail({
-            to: email,
-            subject: 'Seu pedido foi enviado — Encantari 📦',
-            html: emailPedidoEnviado({
-              nome,
-              paymentId,
-              rastreio,
-              transportadora: pedido?.frete_nome || undefined,
-            }),
-          })
-        }
+        const resultado = retirada
+          ? await enviarEmail({
+              to: email,
+              subject: 'Seu pedido está pronto para retirada — Encantari 🎀',
+              html: emailPedidoProntoRetirada({ nome, paymentId }),
+            })
+          : await enviarEmail({
+              to: email,
+              subject: 'Seu pedido foi enviado — Encantari 📦',
+              html: emailPedidoEnviado({ nome, paymentId, rastreio, transportadora: pedido?.frete_nome || undefined }),
+            })
+
+        return NextResponse.json({ ok: true, email_enviado: resultado.ok, email_destino: email, email_erro: resultado.erro })
       }
+
+      return NextResponse.json({ ok: true, email_enviado: false, email_erro: 'Email do cliente não encontrado no pedido' })
     }
 
     return NextResponse.json({ ok: true })
