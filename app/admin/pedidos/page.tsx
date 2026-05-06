@@ -86,21 +86,19 @@ export default function AdminPedidosPage() {
   const [enviandoModal, setEnviandoModal] = useState(false)
   const rastreioRef = useRef<HTMLInputElement>(null)
 
-  async function sincronizar() {
+  async function sincronizar(silencioso = false) {
     setSincronizando(true)
     try {
       const res = await fetch('/api/admin/pedidos/sync', { method: 'POST' })
       const data = await res.json()
       if (data.erro) {
-        alert('Erro: ' + data.erro)
-      } else if (data.importados === 0) {
-        alert(`Todos os ${data.total} pedidos já estavam no banco.`)
-      } else {
-        alert(`${data.importados} pedido(s) importado(s) do Mercado Pago!`)
+        if (!silencioso) alert('Erro: ' + data.erro)
+      } else if (data.importados > 0) {
+        if (!silencioso) alert(`${data.importados} pedido(s) importado(s) do Mercado Pago!`)
         await carregar()
       }
     } catch {
-      alert('Erro de conexão.')
+      if (!silencioso) alert('Erro de conexão.')
     }
     setSincronizando(false)
   }
@@ -115,7 +113,9 @@ export default function AdminPedidosPage() {
     setCarregando(false)
   }
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => {
+    carregar().then(() => sincronizar(true))
+  }, [])
 
   async function atualizarStatus(id: string, status: string, pedidoNome?: string) {
     if (status === 'enviado') {
