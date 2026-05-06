@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     const db = createServiceClient()
     const { data } = await db
       .from('pedidos')
-      .select('id, status, total, criado_em, frete_nome, itens')
+      .select('id, status, total, criado_em, frete_nome, frete_preco, itens, rastreio, retirada, mp_payment_id')
       .filter('comprador->>email', 'eq', user.email)
       .order('criado_em', { ascending: false })
 

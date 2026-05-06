@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { LogOut, Package, User, Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react'
+import { LogOut, Package, User, Eye, EyeOff, Loader2, ArrowRight, ChevronDown, Truck } from 'lucide-react'
 
 type SupabaseSession = {
   access_token: string
@@ -11,13 +11,18 @@ type SupabaseSession = {
   }
 } | null
 
+type Item = { title: string; quantity: number; unit_price: number }
 type Pedido = {
   id: string
+  mp_payment_id?: string
   status: string
   total: number
   criado_em: string
   frete_nome: string
-  itens: any
+  frete_preco: number
+  itens: Item[]
+  rastreio?: string
+  retirada?: boolean
 }
 
 export default function ContaPage() {
@@ -100,12 +105,17 @@ export default function ContaPage() {
     setPedidos([])
   }
 
+  const [expandido, setExpandido] = useState<string | null>(null)
+
   const statusLabel: Record<string, { label: string; cls: string }> = {
+    approved:  { label: 'Pago',      cls: 'bg-green-100 text-green-700' },
     pago:      { label: 'Pago',      cls: 'bg-green-100 text-green-700' },
     enviado:   { label: 'Enviado',   cls: 'bg-blue-100 text-blue-700'   },
     entregue:  { label: 'Entregue',  cls: 'bg-green-200 text-green-800' },
     cancelado: { label: 'Cancelado', cls: 'bg-red-100 text-red-600'     },
     pendente:  { label: 'Pendente',  cls: 'bg-yellow-100 text-yellow-700' },
+    pending:   { label: 'Pendente',  cls: 'bg-yellow-100 text-yellow-700' },
+    rejected:  { label: 'Recusado',  cls: 'bg-red-100 text-red-600'     },
   }
 
   if (carregando) return (
@@ -148,22 +158,89 @@ export default function ContaPage() {
           <div className="space-y-3">
             {pedidos.map(p => {
               const st = statusLabel[p.status] || { label: p.status, cls: 'bg-gray-100 text-gray-600' }
+              const aberto = expandido === p.id
+              const itens: Item[] = Array.isArray(p.itens) ? p.itens : []
+              const codigo = p.mp_payment_id || p.id.slice(0, 8).toUpperCase()
               return (
-                <div key={p.id} className="bg-white border border-gray-100 rounded-2xl p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs text-gray-400 font-mono">#{p.id.slice(0, 8).toUpperCase()}</p>
-                      <p className="font-semibold text-gray-900 mt-0.5">
-                        R$ {Number(p.total).toFixed(2).replace('.', ',')}
-                      </p>
+                <div key={p.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+                  {/* Cabeçalho */}
+                  <button
+                    className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-gray-50 transition-colors"
+                    onClick={() => setExpandido(aberto ? null : p.id)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                        <span className="text-xs text-gray-400 font-mono">#{codigo}</span>
+                      </div>
+                      <p className="font-semibold text-gray-900">R$ {Number(p.total).toFixed(2).replace('.', ',')}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {p.frete_nome} • {new Date(p.criado_em).toLocaleDateString('pt-BR')}
+                        {new Date(p.criado_em).toLocaleDateString('pt-BR')}
+                        {p.frete_nome ? ` • ${p.frete_nome}` : ''}
                       </p>
                     </div>
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${st.cls}`}>
-                      {st.label}
-                    </span>
-                  </div>
+                    <ChevronDown size={16} className={`text-gray-400 flex-shrink-0 transition-transform ${aberto ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Detalhes expandidos */}
+                  {aberto && (
+                    <div className="border-t border-gray-100 p-4 space-y-4">
+
+                      {/* Rastreamento */}
+                      {p.status === 'enviado' || p.rastreio ? (
+                        <div className="bg-blue-50 rounded-xl p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Truck size={14} className="text-blue-600" />
+                            <p className="text-xs font-semibold text-blue-700">
+                              {p.retirada ? 'Pronto para retirada' : 'Código de rastreamento'}
+                            </p>
+                          </div>
+                          {p.rastreio ? (
+                            <>
+                              <p className="font-mono font-bold text-blue-900 text-lg tracking-wider">{p.rastreio}</p>
+                              <a
+                                href="https://rastreamento.correios.com.br/app/index.php"
+                                target="_blank" rel="noopener noreferrer"
+                                className="inline-block mt-2 text-xs text-blue-600 underline underline-offset-2"
+                              >
+                                Rastrear nos Correios →
+                              </a>
+                            </>
+                          ) : p.retirada ? (
+                            <p className="text-sm text-blue-800">Seu pedido está pronto! Entre em contato para combinar a retirada.</p>
+                          ) : (
+                            <p className="text-sm text-blue-700">Seu pedido foi enviado. O código de rastreamento será atualizado em breve.</p>
+                          )}
+                        </div>
+                      ) : null}
+
+                      {/* Itens */}
+                      {itens.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">Itens do pedido</p>
+                          <div className="space-y-1.5">
+                            {itens.map((item, i) => (
+                              <div key={i} className="flex justify-between text-sm">
+                                <span className="text-gray-700">{item.title} <span className="text-gray-400">×{item.quantity}</span></span>
+                                <span className="text-gray-900 whitespace-nowrap">R$ {(Number(item.unit_price) * Number(item.quantity)).toFixed(2).replace('.', ',')}</span>
+                              </div>
+                            ))}
+                            {p.frete_preco > 0 && (
+                              <div className="flex justify-between text-sm text-gray-400">
+                                <span>Frete — {p.frete_nome}</span>
+                                <span>R$ {Number(p.frete_preco).toFixed(2).replace('.', ',')}</span>
+                              </div>
+                            )}
+                            <div className="border-t border-gray-100 pt-2 flex justify-between font-semibold text-sm">
+                              <span>Total</span>
+                              <span>R$ {Number(p.total).toFixed(2).replace('.', ',')}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  )}
                 </div>
               )
             })}
