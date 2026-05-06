@@ -256,7 +256,7 @@ export default function AdminPedidosPage() {
           <p className="text-gray-400 text-sm mt-0.5">{pedidos.length} pedido(s) no total</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={sincronizar} disabled={sincronizando}
+          <button onClick={() => sincronizar()} disabled={sincronizando}
             className="flex items-center gap-2 px-4 py-2 text-sm text-vinho border border-vinho/30 rounded-full hover:bg-vinho/5 transition-colors disabled:opacity-50"
             title="Importa pedidos aprovados diretamente do Mercado Pago">
             {sincronizando ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
