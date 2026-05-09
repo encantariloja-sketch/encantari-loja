@@ -30,6 +30,7 @@ export default function ProdutoPage() {
   const [opcoesFretes, setOpcoesFretes] = useState<any[]>([])
   const [avisoFrete, setAvisoFrete] = useState('')
   const [variacaoSelecionada, setVariacaoSelecionada] = useState<Record<string, string>>({})
+  const [imgError, setImgError] = useState(false)
   const { adicionar } = useCart()
 
   useEffect(() => {
@@ -100,11 +101,11 @@ export default function ProdutoPage() {
     return op?.imagem || null
   }, null) ?? null
 
-  const imagemExibida = imagemVariacao || imagens[imagemAtiva] || '/images/produto-placeholder.jpg'
+  const imagemExibida = imgError ? null : (imagemVariacao || imagens[imagemAtiva] || null)
 
   function selecionarVariacao(tipo: string, valor: string) {
     setVariacaoSelecionada(prev => ({ ...prev, [tipo]: valor }))
-    // se a opção tem imagem própria, limpa imagemAtiva para ela ter prioridade
+    setImgError(false)
     setImagemAtiva(0)
   }
 
@@ -118,16 +119,23 @@ export default function ProdutoPage() {
         {/* ── Galeria ── */}
         <div>
           <div className="aspect-square relative rounded-2xl overflow-hidden bg-creme-dark mb-3 transition-all duration-300">
-            <Image
-              key={imagemExibida}
-              src={imagemExibida}
-              alt={produto.nome}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
+            {imagemExibida ? (
+              <Image
+                key={imagemExibida}
+                src={imagemExibida}
+                alt={produto.nome}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-creme-dark">
+                <span className="text-8xl opacity-30">✨</span>
+              </div>
+            )}
             {produto.novo && <span className="badge-novo">Novo</span>}
-            {imagemVariacao && (
+            {imagemVariacao && !imgError && (
               <span className="absolute bottom-3 left-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
                 {Object.values(variacaoSelecionada).join(' · ')}
               </span>
