@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { ShoppingBag, Search, Menu, X, User } from 'lucide-react'
 import { useCart } from '@/lib/CartContext'
 
@@ -9,10 +10,21 @@ type Categoria = { id: string; nome: string; icone: string }
 
 export default function Header({ topbar }: { topbar?: string }) {
   const { totalItens } = useCart()
+  const router = useRouter()
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [menuAberto, setMenuAberto] = useState(false)
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [busca, setBusca] = useState('')
+
+  function pesquisar(e: React.FormEvent) {
+    e.preventDefault()
+    const termo = busca.trim()
+    if (!termo) return
+    router.push(`/produtos?busca=${encodeURIComponent(termo)}`)
+    setBuscaAberta(false)
+    setBusca('')
+  }
 
   useEffect(() => {
     fetch('/api/loja/categorias')
@@ -48,13 +60,18 @@ export default function Header({ topbar }: { topbar?: string }) {
               <Image src="/logo-escura.png" alt="Encantari" width={140} height={60} className="h-10 md:h-12 w-auto object-contain" priority />
             </Link>
 
-            <div className="hidden md:flex flex-1 max-w-lg mx-4">
+            <form onSubmit={pesquisar} className="hidden md:flex flex-1 max-w-lg mx-4">
               <div className="relative w-full">
                 <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" placeholder="O que você procura?"
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-rosa bg-gray-50 focus:bg-white transition-all" />
+                <input
+                  type="text"
+                  placeholder="O que você procura?"
+                  value={busca}
+                  onChange={e => setBusca(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-rosa bg-gray-50 focus:bg-white transition-all"
+                />
               </div>
-            </div>
+            </form>
 
             <div className="flex items-center gap-1 md:gap-2">
               <button onClick={() => setBuscaAberta(!buscaAberta)} className="md:hidden p-2.5 text-vinho/70 hover:text-vinho" aria-label="Buscar">
@@ -80,11 +97,17 @@ export default function Header({ topbar }: { topbar?: string }) {
 
         {buscaAberta && (
           <div className="md:hidden px-4 pb-3 border-t border-gray-100">
-            <div className="relative mt-3">
+            <form onSubmit={pesquisar} className="relative mt-3">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input autoFocus type="text" placeholder="O que você procura?"
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-rosa bg-gray-50" />
-            </div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="O que você procura?"
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-rosa bg-gray-50"
+              />
+            </form>
           </div>
         )}
 

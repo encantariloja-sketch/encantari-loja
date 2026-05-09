@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState } from 'react'
 import { ShoppingBag, Heart } from 'lucide-react'
 import type { Produto } from '@/data/produtos'
 import { useCart } from '@/lib/CartContext'
@@ -27,6 +28,7 @@ const PLACEHOLDER_ICONS: Record<string, string> = {
 
 export default function ProductCard({ produto }: { produto: Produto }) {
   const { adicionar } = useCart()
+  const [imgError, setImgError] = useState(false)
 
   const desconto = produto.precoAntigo
     ? Math.round((1 - produto.preco / produto.precoAntigo) * 100)
@@ -38,13 +40,14 @@ export default function ProductCard({ produto }: { produto: Produto }) {
   return (
     <div className="produto-card group flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
       <Link href={`/produto/${produto.slug}`} className="relative aspect-square overflow-hidden flex-shrink-0">
-        {produto.imagem ? (
+        {produto.imagem && !imgError ? (
           <Image
             src={produto.imagem}
             alt={produto.nome}
             fill
             className="produto-card-img object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div
