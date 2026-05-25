@@ -1,10 +1,17 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Truck, CreditCard, Loader2 } from 'lucide-react'
+import { ArrowLeft, Truck, CreditCard, Loader2, Tag, X, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useCart } from '@/lib/CartContext'
 
 type Frete = { nome: string; preco: number; prazo: string; id: string }
+type CupomAplicado = {
+  codigo: string
+  descricao: string | null
+  tipo_desconto: 'percentual' | 'valor_fixo' | 'frete_gratis'
+  valor: number | null
+  desconto_calculado: number
+}
 
 const STORAGE_KEY = 'encantari_checkout_dados'
 
@@ -21,13 +28,17 @@ export default function CheckoutPage() {
   const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null)
   const [dados, setDados] = useState(dadosVazios)
 
+  const [cupomDigitado, setCupomDigitado] = useState('')
+  const [cupom, setCupom] = useState<CupomAplicado | null>(null)
+  const [validandoCupom, setValidandoCupom] = useState(false)
+  const [cupomErro, setCupomErro] = useState('')
+
   // Carrega dados salvos + sessão do usuário logado
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try { setDados(JSON.parse(saved)) } catch {}
     }
-    // Pré-preenche todos os campos da sessão Supabase se logado
     import('@/lib/supabase').then(({ getSupabase }) => {
       getSupabase().auth.getSession().then(({ data: { session } }) => {
         if (!session) return
@@ -49,7 +60,6 @@ export default function CheckoutPage() {
     }).catch(() => {})
   }, [])
 
-  // Persiste no localStorage sempre que dados mudar
   useEffect(() => {
     if (Object.values(dados).some(v => v)) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dados))
@@ -95,6 +105,40 @@ export default function CheckoutPage() {
     setLoading(false)
   }
 
+  async function aplicarCupom() {
+    if (!cupomDigitado.trim()) return
+    setValidandoCupom(true)
+    setCupomErro('')
+    setCupom(null)
+    try {
+      const res = await fetch('/api/cupom/validar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codigo: cupomDigitado.trim(),
+          email: dados.email || '',
+          subtotal: totalPreco,
+        }),
+      })
+      const data = await res.json()
+      if (data.valido) {
+        setCupom(data)
+        setCupomDigitado('')
+      } else {
+        setCupomErro(data.erro || 'Cupom inválido')
+      }
+    } catch {
+      setCupomErro('Erro ao validar cupom')
+    }
+    setValidandoCupom(false)
+  }
+
+  function removerCupom() {
+    setCupom(null)
+    setCupomErro('')
+    setCupomDigitado('')
+  }
+
   async function finalizarCompra() {
     if (!freteEscolhido) return
     setLoading(true)
@@ -102,13 +146,12 @@ export default function CheckoutPage() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itens, dados, frete: freteEscolhido }),
+        body: JSON.stringify({ itens, dados, frete: freteEscolhido, cupom }),
       })
       const data = await res.json()
       if (data.url) {
         limpar()
         localStorage.removeItem(STORAGE_KEY)
-        // Salva dados do cliente no perfil Supabase (sem aguardar)
         import('@/lib/supabase').then(({ getSupabase }) => {
           const sb = getSupabase()
           sb.auth.getSession().then(({ data: { session } }) => {
@@ -128,6 +171,12 @@ export default function CheckoutPage() {
     }
     setLoading(false)
   }
+
+  // Cálculos com desconto
+  const fretePreco = freteEscolhido?.preco || 0
+  const freteComDesconto = cupom?.tipo_desconto === 'frete_gratis' ? 0 : fretePreco
+  const descontoItens = cupom && cupom.tipo_desconto !== 'frete_gratis' ? cupom.desconto_calculado : 0
+  const totalFinal = totalPreco - descontoItens + freteComDesconto
 
   if (itens.length === 0) {
     return (
@@ -272,6 +321,58 @@ export default function CheckoutPage() {
           {etapa === 'pagamento' && (
             <div className="space-y-4">
               <h2 className="heading text-xl">Pagamento</h2>
+
+              {/* Campo de cupom */}
+              <div className="bg-creme-dark rounded-2xl p-4">
+                <p className="text-sm font-medium text-vinho mb-3 flex items-center gap-2">
+                  <Tag size={15} /> Cupom de desconto
+                </p>
+
+                {cupom ? (
+                  <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                    <CheckCircle2 size={18} className="text-green-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono font-bold text-green-700 text-sm">{cupom.codigo}</p>
+                      <p className="text-green-600 text-xs">
+                        {cupom.tipo_desconto === 'frete_gratis'
+                          ? 'Frete grátis aplicado'
+                          : cupom.tipo_desconto === 'percentual'
+                          ? `${cupom.valor}% de desconto — você economiza R$ ${cupom.desconto_calculado.toFixed(2).replace('.', ',')}`
+                          : `R$ ${(cupom.valor || 0).toFixed(2).replace('.', ',')} de desconto`}
+                        {cupom.descricao ? ` · ${cupom.descricao}` : ''}
+                      </p>
+                    </div>
+                    <button onClick={removerCupom} className="text-green-500 hover:text-green-700 flex-shrink-0">
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      className="input flex-1 font-mono uppercase tracking-widest"
+                      placeholder="CÓDIGO DO CUPOM"
+                      value={cupomDigitado}
+                      onChange={e => { setCupomDigitado(e.target.value.toUpperCase()); setCupomErro('') }}
+                      onKeyDown={e => { if (e.key === 'Enter') aplicarCupom() }}
+                    />
+                    <button
+                      onClick={aplicarCupom}
+                      disabled={validandoCupom || !cupomDigitado.trim()}
+                      className="btn-secondary flex-shrink-0 flex items-center gap-1 px-4"
+                    >
+                      {validandoCupom ? <Loader2 size={15} className="animate-spin" /> : 'Aplicar'}
+                    </button>
+                  </div>
+                )}
+
+                {cupomErro && (
+                  <div className="flex items-center gap-2 mt-2 text-red-600 text-xs">
+                    <AlertCircle size={14} />
+                    {cupomErro}
+                  </div>
+                )}
+              </div>
+
               <div className="bg-creme-dark rounded-2xl p-6 text-center">
                 <CreditCard size={48} className="mx-auto text-vinho/40 mb-3" />
                 <p className="text-vinho/70 mb-2">Você será redirecionado para o Mercado Pago.</p>
@@ -309,12 +410,28 @@ export default function CheckoutPage() {
               {freteEscolhido && (
                 <div className="flex justify-between text-vinho/70">
                   <span>Frete ({freteEscolhido.nome})</span>
-                  <span>{freteEscolhido.preco === 0 ? 'Grátis' : `R$ ${freteEscolhido.preco.toFixed(2).replace('.', ',')}`}</span>
+                  <span>
+                    {freteComDesconto === 0
+                      ? <span className="text-green-600 font-medium">Grátis</span>
+                      : `R$ ${freteComDesconto.toFixed(2).replace('.', ',')}`}
+                  </span>
+                </div>
+              )}
+              {cupom && descontoItens > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Desconto ({cupom.codigo})</span>
+                  <span>-R$ {descontoItens.toFixed(2).replace('.', ',')}</span>
+                </div>
+              )}
+              {cupom && cupom.tipo_desconto === 'frete_gratis' && (
+                <div className="flex justify-between text-green-600">
+                  <span>Cupom ({cupom.codigo})</span>
+                  <span>Frete grátis</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-vinho text-base pt-1">
                 <span>Total</span>
-                <span>R$ {(totalPreco + (freteEscolhido?.preco || 0)).toFixed(2).replace('.', ',')}</span>
+                <span>R$ {totalFinal.toFixed(2).replace('.', ',')}</span>
               </div>
             </div>
           </div>

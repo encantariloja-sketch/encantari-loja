@@ -39,6 +39,26 @@ async function salvarPedido(paymentId: string) {
     console.error('Webhook: erro ao salvar pedido', upsertError)
   } else {
     console.log('Webhook: pedido salvo com sucesso', payment.id)
+
+    // Registra uso do cupom se houver
+    if (meta.cupom?.codigo) {
+      try {
+        const { data: cupomAtual } = await db
+          .from('cupons')
+          .select('usos_atuais, tipo_limite, clientes_usados')
+          .eq('codigo', meta.cupom.codigo)
+          .single()
+        if (cupomAtual) {
+          const updates: Record<string, unknown> = { usos_atuais: (cupomAtual.usos_atuais || 0) + 1 }
+          if (cupomAtual.tipo_limite === 'por_cliente' && meta.dados?.email) {
+            updates.clientes_usados = [...(cupomAtual.clientes_usados || []), meta.dados.email.toLowerCase()]
+          }
+          await db.from('cupons').update(updates).eq('codigo', meta.cupom.codigo)
+        }
+      } catch (e) {
+        console.error('Webhook: erro ao registrar uso do cupom', e)
+      }
+    }
   }
 
   // Email de confirmação de pedido
