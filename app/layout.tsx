@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { CartProvider } from '@/lib/CartContext'
+import PageTracker from '@/components/PageTracker'
 
 export const metadata: Metadata = {
   title: { default: 'Encantari — Presentes & Decoração', template: '%s | Encantari' },
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body>
         <CartProvider>
+          <PageTracker />
           {children}
         </CartProvider>
       </body>
