@@ -21,12 +21,18 @@ export async function GET() {
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
   const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
 
-  const [hoje, semana, mes, usuarios] = await Promise.all([
+  const [hoje, semana, mes, pedidos] = await Promise.all([
     db.from('visitas').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
     db.from('visitas').select('*', { count: 'exact', head: true }).gte('created_at', weekStart.toISOString()),
     db.from('visitas').select('*', { count: 'exact', head: true }).gte('created_at', monthStart.toISOString()),
-    db.auth.admin.listUsers({ perPage: 1000 }),
+    db.from('pedidos').select('comprador'),
   ])
+
+  const clientesUnicos = new Set(
+    (pedidos.data || [])
+      .map((p: any) => p.comprador?.email)
+      .filter(Boolean)
+  ).size
 
   return NextResponse.json({
     visitas: {
@@ -34,6 +40,6 @@ export async function GET() {
       semana: semana.count ?? 0,
       mes: mes.count ?? 0,
     },
-    clientes: usuarios.data?.users?.length ?? 0,
+    clientes: clientesUnicos,
   })
 }
