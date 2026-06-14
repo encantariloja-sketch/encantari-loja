@@ -15,14 +15,18 @@ export default function PageTracker() {
 
     if (localStorage.getItem(key)) return
 
+    // Marca imediatamente para evitar duplo envio em navegação rápida
+    localStorage.setItem(key, '1')
+
     fetch('/api/visita', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pagina: pathname }),
+    }).catch(() => {
+      // Se falhar, remove a marca para tentar novamente
+      localStorage.removeItem(key)
     })
-      .then(() => localStorage.setItem(key, '1'))
-      .catch(() => {})
-  }, [pathname])
+  }, []) // roda só na primeira montagem, não a cada troca de página
 
   return null
 }
