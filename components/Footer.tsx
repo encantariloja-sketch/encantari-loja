@@ -106,6 +106,13 @@ export default async function Footer() {
                   </Link>
                 </li>
               ))}
+              {!rodape.institucional.some(l => l.href === '/trocas-devolucoes') && (
+                <li>
+                  <Link href="/trocas-devolucoes" className="text-xs hover:text-creme transition-colors">
+                    Trocas e devoluções
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
