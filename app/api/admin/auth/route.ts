@@ -18,3 +18,23 @@ export async function POST(req: Request) {
   })
   return response
 }
+
+export async function DELETE() {
+  const response = NextResponse.json({ ok: true })
+  response.cookies.set('admin-key', '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 0,
+    path: '/',
+  })
+  return response
+}
+
+export async function GET() {
+  const adminKey = cookies().get('admin-key')?.value
+  const validKey = process.env.ADMIN_PASSWORD || 'encantari2024'
+  if (adminKey !== validKey) {
+    return NextResponse.json({ autenticado: false }, { status: 401 })
+  }
+  return NextResponse.json({ autenticado: true })
+}

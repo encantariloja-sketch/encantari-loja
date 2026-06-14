@@ -19,6 +19,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
 
+  // Verifica sessão admin no cliente (segunda camada após middleware)
+  useEffect(() => {
+    fetch('/api/admin/auth', { method: 'GET' })
+      .then(r => { if (!r.ok) router.push('/admin/login') })
+      .catch(() => router.push('/admin/login'))
+  }, [router])
+
   // Desativa autocorrect/autocapitalize do browser em todos os inputs do admin
   useEffect(() => {
     function aplicar(root: Document | Element) {
