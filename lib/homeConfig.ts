@@ -155,6 +155,7 @@ export const defaultConfig: HomeConfig = {
     institucional: [
       { label: 'Sobre a Encantari', href: '/sobre' },
       { label: 'Termos de uso', href: '/termos' },
+      { label: 'Trocas e devoluções', href: '/trocas-devolucoes' },
     ],
   },
 }
