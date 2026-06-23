@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { LayoutDashboard, Package, ShoppingCart, Home, Tag, LogOut, FileText, Ticket } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, Home, Tag, LogOut, FileText, Ticket, Percent } from 'lucide-react'
 
 const navLinks = [
   { href: '/admin',             label: 'Início',     icon: LayoutDashboard, mobile: true  },
@@ -11,6 +11,7 @@ const navLinks = [
   { href: '/admin/paginas',     label: 'Páginas',    icon: FileText,        mobile: false },
   { href: '/admin/produtos',    label: 'Produtos',   icon: Package,         mobile: true  },
   { href: '/admin/categorias',  label: 'Categorias', icon: Tag,             mobile: false },
+  { href: '/admin/ofertas',     label: 'Ofertas',    icon: Percent,         mobile: false },
   { href: '/admin/pedidos',     label: 'Pedidos',    icon: ShoppingCart,    mobile: true  },
   { href: '/admin/cupons',      label: 'Cupons',     icon: Ticket,          mobile: false },
 ]

@@ -62,15 +62,24 @@ function ProdutosContent() {
     if (ordemParam === 'menor') lista.sort((a, b) => a.preco - b.preco)
     if (ordemParam === 'maior') lista.sort((a, b) => b.preco - a.preco)
     if (ordemParam === 'novos') lista.sort((a, b) => (b.novo ? 1 : 0) - (a.novo ? 1 : 0))
-    if (ordemParam === 'ofertas') lista.sort((a, b) => ((b.precoAntigo ? 1 : 0) - (a.precoAntigo ? 1 : 0)))
+    if (ordemParam === 'ofertas') {
+      lista = lista.filter(p => p.precoAntigo && p.precoAntigo > p.preco)
+      lista.sort((a, b) => {
+        const dA = a.precoAntigo ? (1 - a.preco / a.precoAntigo) : 0
+        const dB = b.precoAntigo ? (1 - b.preco / b.precoAntigo) : 0
+        return dB - dA // maior desconto primeiro
+      })
+    }
     return lista
   }, [categoriaParam, subcategoriaAtiva, busca, ordemParam, produtos])
 
   const tituloCategoria = useMemo(() => {
+    if (ordemParam === 'ofertas') return '🏷️ Ofertas'
+    if (ordemParam === 'novos') return '🎉 Lançamentos'
     if (categoriaParam === 'todos') return 'Loja'
     const cat = categorias.find(c => c.id === categoriaParam)
     return cat ? `${cat.icone} ${cat.nome}` : 'Loja'
-  }, [categoriaParam, categorias])
+  }, [categoriaParam, ordemParam, categorias])
 
   if (carregando) return (
     <div className="flex justify-center items-center py-32">
