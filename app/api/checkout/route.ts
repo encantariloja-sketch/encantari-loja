@@ -82,9 +82,11 @@ export async function POST(req: Request) {
     items = aplicarDescontoNosItens(items, cupom)
   }
 
-  const host = req.headers.get('host') || 'localhost:3002'
-  const proto = req.headers.get('x-forwarded-proto') || 'https'
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || `${proto}://${host}`
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  if (!siteUrl) {
+    console.error('[CHECKOUT] NEXT_PUBLIC_SITE_URL não configurado!')
+    return NextResponse.json({ erro: 'Servidor não configurado corretamente' }, { status: 503 })
+  }
   const sandbox = process.env.MP_SANDBOX === 'true'
 
   try {

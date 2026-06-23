@@ -1,8 +1,37 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { enviarEmail, emailConfirmacaoPedido } from '@/lib/email'
+import crypto from 'crypto'
 
 export const maxDuration = 30
+
+function verificarAssinaturaMP(req: Request, rawBody: string): boolean {
+  const secret = process.env.MP_WEBHOOK_SECRET
+  if (!secret) return true // sem secret configurado, aceita (retrocompatível)
+
+  const xSignature = req.headers.get('x-signature') || ''
+  const xRequestId = req.headers.get('x-request-id') || ''
+
+  // Extrai ts e v1 do header x-signature
+  const partes: Record<string, string> = {}
+  xSignature.split(',').forEach(part => {
+    const [k, v] = part.trim().split('=')
+    if (k && v) partes[k] = v
+  })
+
+  const ts = partes['ts']
+  const v1 = partes['v1']
+  if (!ts || !v1) return false
+
+  // Extrai o data.id do body ou query
+  const url = new URL(req.url)
+  const dataId = url.searchParams.get('data.id') || url.searchParams.get('id') || ''
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`
+  const hash = crypto.createHmac('sha256', secret).update(manifest).digest('hex')
+
+  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(v1))
+}
 
 async function salvarPedido(paymentId: string) {
   const token = process.env.MP_ACCESS_TOKEN
@@ -83,8 +112,19 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  // Responde imediatamente 200 para o Mercado Pago não retentar
   try {
+    const rawBody = await req.text()
+
+    // Verificar assinatura HMAC se MP_WEBHOOK_SECRET estiver configurado
+    if (!verificarAssinaturaMP(req, rawBody)) {
+      console.error('[WEBHOOK] Assinatura inválida — possível spoofing')
+      return NextResponse.json({ ok: false }, { status: 401 })
+    }
+
+    // Recriar body para parsear JSON
+    let body: any = {}
+    try { body = JSON.parse(rawBody) } catch {}
+
     const url = new URL(req.url)
 
     // Formato IPN: query params ?topic=payment&id=...
@@ -96,8 +136,6 @@ export async function POST(req: Request) {
     }
 
     // Formato Webhooks: JSON body { type, data: { id } }
-    let body: any = {}
-    try { body = await req.json() } catch {}
 
     if (body.type === 'payment' && body.data?.id) {
       await salvarPedido(String(body.data.id))

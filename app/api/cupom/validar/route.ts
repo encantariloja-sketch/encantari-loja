@@ -14,27 +14,30 @@ export async function POST(req: Request) {
     .eq('ativo', true)
     .single()
 
-  if (error || !cupom) return NextResponse.json({ valido: false, erro: 'Cupom não encontrado' })
+  // Mensagem genérica para todos os erros de validade — evita enumeração
+  const INVALIDO = { valido: false, erro: 'Cupom inválido ou expirado' }
 
-  // Verifica expiração (aplicável a todos os tipos que tenham data)
+  if (error || !cupom) return NextResponse.json(INVALIDO)
+
+  // Verifica expiração
   if (cupom.data_expiracao && new Date(cupom.data_expiracao) < new Date()) {
-    return NextResponse.json({ valido: false, erro: 'Cupom expirado' })
+    return NextResponse.json(INVALIDO)
   }
 
   // Verifica limite de usos
   if (cupom.tipo_limite === 'primeiros_usos' && cupom.max_usos !== null) {
     if (cupom.usos_atuais >= cupom.max_usos) {
-      return NextResponse.json({ valido: false, erro: 'Cupom atingiu o limite de usos' })
+      return NextResponse.json(INVALIDO)
     }
   }
 
   if (cupom.tipo_limite === 'uso_unico') {
     if (cupom.usos_atuais >= 1) {
-      return NextResponse.json({ valido: false, erro: 'Este cupom já foi utilizado' })
+      return NextResponse.json(INVALIDO)
     }
   }
 
-  // Verifica por cliente (cada email usa uma vez)
+  // Verifica por cliente
   if (cupom.tipo_limite === 'por_cliente' && email) {
     const clientesUsados: string[] = cupom.clientes_usados || []
     if (clientesUsados.includes(email.toLowerCase())) {
