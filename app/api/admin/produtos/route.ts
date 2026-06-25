@@ -31,7 +31,18 @@ export async function POST(req: Request) {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ ok: true, aviso: 'Supabase não configurado' })
     const { createServiceClient } = await import('@/lib/supabase')
     const db = createServiceClient()
-    const { data, error } = await db.from('produtos').insert([body]).select().single()
+
+    // Tenta o slug base; se já existir, adiciona sufixo -2, -3, ...
+    const slugBase: string = body.slug || 'produto'
+    let data: any = null
+    let error: any = null
+    for (let i = 0; i <= 20; i++) {
+      const slug = i === 0 ? slugBase : `${slugBase}-${i + 1}`
+      const res = await db.from('produtos').insert([{ ...body, slug }]).select().single()
+      data = res.data
+      error = res.error
+      if (!error || !String(error.message).includes('produtos_slug_key')) break
+    }
     if (error) throw error
     return NextResponse.json({ produto: data }, { status: 201 })
   } catch (err: any) {
